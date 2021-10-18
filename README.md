@@ -11,7 +11,7 @@ Install steps:
    kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/monitoring.yml
 4. install contour
    kubectl apply -f https://projectcontour.io/quickstart/contour.yaml  
-5.config contour ingress:
+5. config contour ingress:
   kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/ingress.yml
   
  Device geography map, all devices with satellite location can be found from the map. 
