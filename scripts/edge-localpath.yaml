@@ -3205,7 +3205,7 @@ spec:
             name: edge-device-virtual-profiles
       containers:
         - name: edge-device-virtual
-          image: edgexfoundry/device-virtual:2.0.0
+          image: edgego/device-virtual:2.0.0
           command:
             - /device-virtual
             - '--confdir'
