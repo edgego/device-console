@@ -1,5 +1,5 @@
-# Edge-Console Over Kubernetes
-Edge admin console
+# EdgeDevice-Console Over Kubernetes
+EdgeDevice admin console
 
 Install steps:
 
