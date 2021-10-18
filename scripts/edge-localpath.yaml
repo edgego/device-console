@@ -1,0 +1,5737 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: edge-system
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: edge-role
+  labels:
+    app: edge-rbac
+rules:
+  - verbs:
+      - get
+      - list
+      - create
+      - delete
+      - update
+      - watch
+    apiGroups:
+      - ''
+    resources:
+      - configmaps
+      - services
+  - verbs:
+      - get
+      - list
+      - create
+      - delete
+      - update
+      - watch
+    apiGroups:
+      - apps
+    resources:
+      - deployments
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: edge-rolebinding
+  labels:
+    app: edge-rbac
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: edge-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edge-role
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: edge-ui-claim
+  namespace: edge-system
+spec:
+  storageClassName: local-path
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 30M
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-support-scheduler
+  namespace: edge-system
+data:
+  configuration.toml: >
+    ScheduleIntervalTime = 500
+
+
+    [Writable]
+
+    LogLevel = 'INFO'
+        [Writable.InsecureSecrets]
+            [Writable.InsecureSecrets.DB]
+            path = "redisdb"
+                [Writable.InsecureSecrets.DB.Secrets]
+                username = ""
+                password = ""
+
+    [Service]
+
+    HealthCheckInterval = '10s'
+
+    Host = 'edge-support-scheduler'
+
+    Port = 59861
+
+    ServerBindAddr = '0.0.0.0' # Leave blank so default to Host value unless
+    different value is needed.
+
+    StartupMsg = 'This is the Support Scheduler Microservice'
+
+    MaxResultCount = 50000
+
+    MaxRequestSize = 0 # Not curently used. Defines the maximum size of http
+    request body in bytes
+
+    RequestTimeout = '5s'
+
+
+    [Registry]
+
+    Host = 'localhost'
+
+    Port = 8500
+
+    Type = 'consul'
+
+
+    [Databases]
+      [Databases.Primary]
+      Host = 'edge-redis-master-0.edge-redis-headless'
+      Name = 'scheduler'
+      Port = 6379
+      Timeout = 5000
+      Type = 'redisdb'
+
+    [Intervals]
+        [Intervals.Midnight]
+        Name = 'midnight'
+        Start = '20180101T000000'
+        Interval = '24h'
+
+    [IntervalActions]
+        [IntervalActions.ScrubAged]
+        Name = 'scrub-aged-events'
+        Host = 'localhost'
+        Port = 59880
+        Protocol = 'http'
+        Method = 'DELETE'
+        Target = 'core-data'
+        Path = '/api/v2/event/age/604800000000000' # Remove events older than 7 days
+        Interval = 'midnight'
+
+    [SecretStore]
+
+    Type = 'vault'
+
+    Protocol = 'http'
+
+    Host = 'localhost'
+
+    Port = 8200
+
+    Path = 'support-scheduler/'
+
+    TokenFile = '/tmp/edgex/secrets/support-scheduler/secrets-token.json'
+
+    RootCaCertPath = ''
+
+    ServerName = ''
+      [SecretStore.Authentication]
+      AuthType = 'X-Vault-Token'
+
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-core-metadata
+  namespace: edge-system
+data:
+  configuration.toml: >
+    [Writable]
+
+    LogLevel = 'INFO'
+      [Writable.InsecureSecrets]
+        [Writable.InsecureSecrets.DB]
+        path = "redisdb"
+          [Writable.InsecureSecrets.DB.Secrets]
+          username = ""
+          password = ""
+
+    [Service]
+
+    HealthCheckInterval = '10s'
+
+    Host = 'edge-core-metadata'
+
+    Port = 59881
+
+    ServerBindAddr = '0.0.0.0' # Leave blank so default to Host value unless
+    different value is needed.
+
+    StartupMsg = 'This is the EdgeX Core Metadata Microservice'
+
+    MaxResultCount = 50000
+
+    MaxRequestSize = 0 # Not curently used. Defines the maximum size of http
+    request body in bytes
+
+    RequestTimeout = '5s'
+
+
+    [Registry]
+
+    Host = 'localhost'
+
+    Port = 8500
+
+    Type = 'consul'
+
+
+    [Clients]
+      [Clients.support-notifications]
+      Protocol = 'http'
+      Host = 'edge-support-notifications'
+      Port = 59860
+
+      [Clients.core-data]
+      Protocol = 'http'
+      Host = 'edge-core-data'
+      Port = 59880
+
+    [Databases]
+      [Databases.Primary]
+      Host = 'edge-redis-master-0.edge-redis-headless'
+      Name = 'metadata'
+      Password = 'password'
+      Username = 'meta'
+      Port = 6379
+      Timeout = 5000
+      Type = 'redisdb'
+
+    [Notifications]
+
+    PostDeviceChanges = true
+
+    Slug = 'device-change-'
+
+    Content = 'Device update: '
+
+    Sender = 'core-metadata'
+
+    Description = 'Metadata device notice'
+
+    Label = 'metadata'
+
+
+    [SecretStore]
+
+    Type = 'vault'
+
+    Protocol = 'http'
+
+    Host = 'localhost'
+
+    Port = 8200
+
+    Path = 'core-metadata/'
+
+    TokenFile = '/tmp/edgex/secrets/core-metadata/secrets-token.json'
+
+    RootCaCertPath = ''
+
+    ServerName = ''
+      [SecretStore.Authentication]
+      AuthType = 'X-Vault-Token'
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-support-notifications
+  namespace: edge-system
+data:
+  configuration.toml: >-
+    [Writable]
+
+    LogLevel = 'INFO'
+
+    ResendLimit = 2
+
+    ResendInterval = '5s'
+      [Writable.InsecureSecrets]
+        [Writable.InsecureSecrets.DB]
+        path = "redisdb"
+          [Writable.InsecureSecrets.DB.Secrets]
+          username = ""
+          password = ""
+        [Writable.InsecureSecrets.SMTP]
+        path = "smtp"
+          [Writable.InsecureSecrets.SMTP.Secrets]
+          username = "username@mail.example.com"
+          password = ""
+
+    [Service]
+
+    HealthCheckInterval = '10s'
+
+    Host = 'edge-support-notifications'
+
+    Port = 59860
+
+    ServerBindAddr = '0.0.0.0' # Leave blank so default to Host value unless
+    different value is needed.
+
+    StartupMsg = 'This is the Support Notifications Microservice'
+
+    MaxResultCount = 50000
+
+    MaxRequestSize = 0 # Not curently used. Defines the maximum size of http
+    request body in bytes
+
+    RequestTimeout = '5s'
+
+
+    [Registry]
+
+    Host = 'localhost'
+
+    Port = 8500
+
+    Type = 'consul'
+
+
+    [Databases]
+      [Databases.Primary]
+      Host = 'edge-redis-master-0.edge-redis-headless'
+      Name = 'notifications'
+      Port = 6379
+      Timeout = 5000
+      Type = 'redisdb'
+
+    [Smtp]
+      Host = 'smtp.gmail.com'
+      Port = 587
+      Sender = 'tian.jacky@gmail.com'
+      EnableSelfSignedCert = false
+      Subject = 'EdgeX Notification'
+      # SecretPath is used to specify the secret path to store the credential(username and password) for connecting the SMTP server
+      # User need to store the credential via the /secret API before sending the email notification
+      SecretPath = 'smtp'
+      # AuthMode is the SMTP authentication mechanism. Currently, 'usernamepassword' is the only AuthMode supported by this service, and the secret keys are 'username' and 'password'.
+      AuthMode = 'usernamepassword'
+
+
+    [SecretStore]
+
+    Type = 'vault'
+
+    Protocol = 'http'
+
+    Host = 'localhost'
+
+    Port = 8200
+
+    Path = 'support-notifications/'
+
+    TokenFile = '/tmp/edgex/secrets/support-notifications/secrets-token.json'
+
+    RootCaCertPath = ''
+
+    ServerName = ''
+      [SecretStore.Authentication]
+      AuthType = 'X-Vault-Token'
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-core-command
+  namespace: edge-system
+data:
+  configuration.toml: >
+    [Writable]
+
+    LogLevel = 'DEBUG'
+      [Writable.InsecureSecrets]
+        [Writable.InsecureSecrets.DB]
+        path = "redisdb"
+          [Writable.InsecureSecrets.DB.Secrets]
+          username = ""
+          password = ""
+
+    [Service]
+
+    HealthCheckInterval = '10s'
+
+    Host = 'edge-core-command'
+
+    Port = 59882
+
+    ServerBindAddr = '0.0.0.0' # Leave blank so default to Host value unless
+    different value is needed.
+
+    StartupMsg = 'This is the Core Command Microservice'
+
+    MaxResultCount = 50000
+
+    MaxRequestSize = 0 # Not curently used. Defines the maximum size of http
+    request body in bytes
+
+    RequestTimeout = '45s'
+
+
+    [Registry]
+
+    Host = 'localhost'
+
+    Port = 8500
+
+    Type = 'consul'
+
+
+    [Clients]
+      [Clients.core-metadata]
+      Protocol = 'http'
+      Host = 'edge-core-metadata'
+      Port = 59881
+
+    [Databases]
+      [Databases.Primary]
+      Host = 'edge-redis-master-0.edge-redis-headless'
+      Name = 'metadata'
+      Port = 6379
+      Timeout = 5000
+      Type = 'redisdb'
+
+    [SecretStore]
+
+    Type = 'vault'
+
+    Protocol = 'http'
+
+    Host = 'localhost'
+
+    Port = 8200
+
+    # Use the core-meta data secrets due to core-command using core-meta-data's
+    database for persistance.
+
+    Path = 'core-command/'
+
+    TokenFile = '/tmp/edgex/secrets/core-command/secrets-token.json'
+
+    RootCaCertPath = ''
+
+    ServerName = ''
+      [SecretStore.Authentication]
+      AuthType = 'X-Vault-Token'
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-ui
+  namespace: edge-system
+data:
+  configuration.toml: |-
+    [Service]
+    Host = "edge-ui"
+    Port = 4000
+    Labels = []
+    OpenMsg = "edgeX ui started"
+    StaticResourcesPath = "./www"
+
+    #Using an default memory db automatically if not configed here.
+    [Database]
+    Host = ""
+    Name = ""
+    Port = 0
+    Username = "su"
+    Password = "su"
+      [Database.Scheme]
+      User = "user"
+      
+     [Monitoring]
+      DashboardHost = "grafana.edgego.com"
+      DashboardPath=""
+      DashboardPort  =  80
+      DatabaseHost = "prometheus.edgego.com"
+      DatabasePath =""
+      DatabasePort  =  80 
+      
+    [Clients]
+        [Clients.CoreData]
+        Protocol = 'http'
+        Host = 'edge-core-data'
+        Port = 59880
+        PathPrefix = "/coredata"
+
+        [Clients.Metadata]
+        Protocol = 'http'
+        Host = 'edge-core-metadata'
+        Port = 59881
+        PathPrefix = "/metadata"
+
+        [Clients.CoreCommand]
+        Protocol = 'http'
+        Host = 'edge-core-command'
+        Port = 59882
+        PathPrefix = "/command"
+
+        [Clients.Notification]
+        Protocol = 'http'
+        Host = 'edge-support-notifications'
+        Port = 59860
+        PathPrefix = "/notification"
+
+        [Clients.Scheduler]
+        Protocol = 'http'
+        Host = 'edge-support-scheduler'
+        Port = 59861
+        PathPrefix = "/scheduler"
+
+        [Clients.RuleEngine]
+        Protocol = 'http'
+        Host = 'edge-kuiper'
+        Port = 59720
+        PathPrefix = "/rule-engine"
+
+        [Clients.System]
+        Protocol = 'http'
+        Host = 'edgex-sys-mgmt-agent'
+        Port = 58890
+        PathPrefix = "/system"
+
+        [Clients.AppService]
+        Protocol = 'http'
+        Host = 'edge-app-rules-engine'
+        Port = 59701
+        PathPrefix = "/app-service"
+        
+     [Deploy]
+       Namespace = 'edge-system'
+       Image = 'edgexfoundry/app-service-configurable:2.0.0'
+       Target ='kubernetes'
+       Host = '192.168.2.110'
+       User = 'root'
+       Password = '123+qwe'
+       
+    [AppService]
+      LogLevel = "INFO"
+      StoreAndForward = true
+      RetryInterval = "5s"
+      MaxRetryCount = 10
+      Host = 'edge-redis-master-0.edge-redis-headless'
+      Port=6379
+      Name = 'appservice'
+      Password = ''
+      Username = ''
+      PublishTopic = "diao"
+
+    [Registry]
+    Host = "edge-core-consul"
+    Port = 8500
+    Type = "consul"
+    ConfigRegistryStem="edgex/appservices/"
+    ServiceVersion="2.0"
+
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-core-data
+  namespace: edge-system
+data:
+  configuration.toml: >-
+    [Writable]
+
+    PersistData = true
+
+    LogLevel = 'DEBUG'
+       [Writable.InsecureSecrets]
+          [Writable.InsecureSecrets.DB]
+             path = "redisdb"
+                [Writable.InsecureSecrets.DB.Secrets]
+                username = ""
+                password = ""
+
+    [Service]
+
+    HealthCheckInterval = '10s'
+
+    Host = 'edge-core-data'
+
+    Port = 59880
+
+    ServerBindAddr = '0.0.0.0' # Leave blank so default to Host value unless
+    different value is needed.
+
+    StartupMsg = 'This is the Core Data Microservice'
+
+    MaxResultCount = 50000
+
+    MaxRequestSize = 0 # Not curently used. Defines the maximum size of http
+    request body in bytes
+
+    RequestTimeout = '5s'
+
+
+    [Registry]
+
+    Host = 'localhost'
+
+    Port = 8500
+
+    Type = 'consul'
+
+
+    [Clients]
+      [Clients.core-metadata]
+      Protocol = 'http'
+      Host = 'edge-core-metadata'
+      Port = 59881
+
+    [Databases]
+      [Databases.Primary]
+      Host = 'edge-redis-master-0.edge-redis-headless'
+      Name = 'coredata'
+      Port = 6379
+      Timeout = 5000
+      Type = 'redisdb'
+
+    [MessageQueue]
+
+    Protocol = 'redis'
+
+    Host = 'edge-redis-master-0.edge-redis-headless'
+
+    Port = 6379
+
+    Type = 'redis'
+
+    AuthMode = 'usernamepassword'  # required for redis messagebus (secure or
+    insecure).
+
+    SecretName = 'redisdb'
+
+    PublishTopicPrefix = 'edgex/events/core' #
+    /<device-profile-name>/<device-name> will be added to this Publish Topic
+    prefix
+
+    SubscribeEnabled = true
+
+    SubscribeTopic = "edgex/events/device/#"  # required for subscribing to
+    Events from MessageBus
+      [MessageQueue.Optional]
+      # Default MQTT Specific options that need to be here to enable evnironment variable overrides of them
+      # Client Identifiers
+      ClientId ="core-data"
+      # Connection information
+      Qos          =  "0" # Quality of Sevice values are 0 (At most once), 1 (At least once) or 2 (Exactly once)
+      KeepAlive    =  "10" # Seconds (must be 2 or greater)
+      Retained     = "false"
+      AutoReconnect  = "true"
+      ConnectTimeout = "5" # Seconds
+      # TLS configuration - Only used if Cert/Key file or Cert/Key PEMblock are specified
+      SkipCertVerify = "false"
+
+    [SecretStore]
+
+    Type = 'vault'
+
+    Protocol = 'http'
+
+    Host = 'localhost'
+
+    Port = 8200
+
+    Path = 'core-data/'
+
+    TokenFile = '/tmp/edgex/secrets/core-data/secrets-token.json'
+
+    RootCaCertPath = ''
+
+    ServerName = ''
+      [SecretStore.Authentication]
+      AuthType = 'X-Vault-Token'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-ui
+  namespace: edge-system
+spec:
+  type: NodePort
+  selector:
+    app: edge-ui
+  ports:
+    - port: 4000
+      nodePort: 4000
+      name: port-40000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-ui
+  namespace: edge-system
+  labels:
+    app: edge-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-ui
+  template:
+    metadata:
+      name: edge-ui
+      labels:
+        app: edge-ui
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: edge-ui
+        - name: edge-ui-volume
+          persistentVolumeClaim:
+            claimName: edge-ui-claim
+      containers:
+        - name: edge-ui
+          image: edgego/edge-console:2.0.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4000
+          env:
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: EDGEX_SECURITY_SECRET_STORE
+              value: "false"     
+          volumeMounts:
+            - name: edge-ui-volume
+              mountPath: /res
+            - name: config
+              mountPath: /go/src/github.com/edgexfoundry/edgex-ui-go/cmd/edgex-ui-server/res/docker
+          readinessProbe:
+            tcpSocket:
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 4000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-redis
+  namespace: edge-system
+  labels:
+    app: redis
+    app.kubernetes.io/managed-by: Helm
+    chart: redis-12.7.4
+    heritage: Helm
+    release: edge-redis
+  annotations:
+    meta.helm.sh/release-name: edge-redis
+    meta.helm.sh/release-namespace: edge-system
+data:
+  master.conf: |-
+    dir /data
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+  redis.conf: |-
+    # User-supplied configuration:
+    # Enable AOF https://redis.io/topics/persistence#append-only-file
+    appendonly yes
+    # Disable RDB persistence, AOF persistence already enabled.
+    save ""
+  replica.conf: |-
+    dir /data
+    slave-read-only yes
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-redis-health
+  namespace: edge-system
+  labels:
+    app: redis
+    app.kubernetes.io/managed-by: Helm
+    chart: redis-12.7.4
+    heritage: Helm
+    release: edge-redis
+  annotations:
+    meta.helm.sh/release-name: edge-redis
+    meta.helm.sh/release-namespace: edge-system
+data:
+  ping_liveness_local.sh: >-
+    #!/bin/bash
+
+    export REDISCLI_AUTH="$REDIS_PASSWORD"
+
+    response=$(
+      timeout -s 3 $1 \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+
+    if [ "$response" != "PONG" ] && [ "$response" != "LOADING Redis is loading
+    the dataset in memory" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_liveness_local_and_master.sh: |-
+    script_dir="$(dirname "$0")"
+    exit_status=0
+    "$script_dir/ping_liveness_local.sh" $1 || exit_status=$?
+    "$script_dir/ping_liveness_master.sh" $1 || exit_status=$?
+    exit $exit_status
+  ping_liveness_master.sh: >-
+    #!/bin/bash
+
+    export REDISCLI_AUTH="$REDIS_MASTER_PASSWORD"
+
+    response=$(
+      timeout -s 3 $1 \
+      redis-cli \
+        -h $REDIS_MASTER_HOST \
+        -p $REDIS_MASTER_PORT_NUMBER \
+        ping
+    )
+
+    if [ "$response" != "PONG" ] && [ "$response" != "LOADING Redis is loading
+    the dataset in memory" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_readiness_local.sh: |-
+    #!/bin/bash
+    export REDISCLI_AUTH="$REDIS_PASSWORD"
+    response=$(
+      timeout -s 3 $1 \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_readiness_local_and_master.sh: |-
+    script_dir="$(dirname "$0")"
+    exit_status=0
+    "$script_dir/ping_readiness_local.sh" $1 || exit_status=$?
+    "$script_dir/ping_readiness_master.sh" $1 || exit_status=$?
+    exit $exit_status
+  ping_readiness_master.sh: |-
+    #!/bin/bash
+    export REDISCLI_AUTH="$REDIS_MASTER_PASSWORD"
+    response=$(
+      timeout -s 3 $1 \
+      redis-cli \
+        -h $REDIS_MASTER_HOST \
+        -p $REDIS_MASTER_PORT_NUMBER \
+        ping
+    )
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-redis-scripts
+  namespace: edge-system
+  labels:
+    app: redis
+    app.kubernetes.io/managed-by: Helm
+    chart: redis-12.7.4
+    heritage: Helm
+    release: edge-redis
+  annotations:
+    meta.helm.sh/release-name: edge-redis
+    meta.helm.sh/release-namespace: edge-system
+data:
+  start-master.sh: |
+    #!/bin/bash
+    if [[ -n $REDIS_PASSWORD_FILE ]]; then
+      password_aux=`cat ${REDIS_PASSWORD_FILE}`
+      export REDIS_PASSWORD=$password_aux
+    fi
+    if [[ ! -f /opt/bitnami/redis/etc/master.conf ]];then
+      cp /opt/bitnami/redis/mounted-etc/master.conf /opt/bitnami/redis/etc/master.conf
+    fi
+    if [[ ! -f /opt/bitnami/redis/etc/redis.conf ]];then
+      cp /opt/bitnami/redis/mounted-etc/redis.conf /opt/bitnami/redis/etc/redis.conf
+    fi
+    ARGS=("--port" "${REDIS_PORT}")
+    ARGS+=("--protected-mode" "no")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/redis.conf")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/master.conf")
+    exec /run.sh "${ARGS[@]}"
+  start-slave.sh: |
+    #!/bin/bash
+    if [[ -n $REDIS_PASSWORD_FILE ]]; then
+      password_aux=`cat ${REDIS_PASSWORD_FILE}`
+      export REDIS_PASSWORD=$password_aux
+    fi
+    if [[ -n $REDIS_MASTER_PASSWORD_FILE ]]; then
+      password_aux=`cat ${REDIS_MASTER_PASSWORD_FILE}`
+      export REDIS_MASTER_PASSWORD=$password_aux
+    fi
+    if [[ ! -f /opt/bitnami/redis/etc/replica.conf ]];then
+      cp /opt/bitnami/redis/mounted-etc/replica.conf /opt/bitnami/redis/etc/replica.conf
+    fi
+    if [[ ! -f /opt/bitnami/redis/etc/redis.conf ]];then
+      cp /opt/bitnami/redis/mounted-etc/redis.conf /opt/bitnami/redis/etc/redis.conf
+    fi
+    ARGS=("--port" "${REDIS_PORT}")
+    ARGS+=("--slaveof" "${REDIS_MASTER_HOST}" "${REDIS_MASTER_PORT_NUMBER}")
+    ARGS+=("--protected-mode" "no")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/redis.conf")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/replica.conf")
+    exec /run.sh "${ARGS[@]}"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: edge-redis-headless
+  namespace: edge-system
+  labels:
+    app: redis
+    app.kubernetes.io/managed-by: Helm
+    chart: redis-12.7.4
+    heritage: Helm
+    release: edge-redis
+  annotations:
+    meta.helm.sh/release-name: edge-redis
+    meta.helm.sh/release-namespace: edge-system
+spec:
+  ports:
+    - name: redis
+      protocol: TCP
+      port: 6379
+      targetPort: redis
+  selector:
+    app: redis
+    release: edge-redis
+  clusterIP: None
+  type: ClusterIP
+  sessionAffinity: None
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: edge-redis-master
+  namespace: edge-system
+  labels:
+    app: redis
+    app.kubernetes.io/managed-by: Helm
+    chart: redis-12.7.4
+    heritage: Helm
+    release: edge-redis
+  annotations:
+    meta.helm.sh/release-name: edge-redis
+    meta.helm.sh/release-namespace: edge-system
+spec:
+  ports:
+    - name: redis
+      protocol: TCP
+      port: 6379
+      targetPort: redis
+  selector:
+    app: redis
+    release: edge-redis
+    role: master
+  type: ClusterIP
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: edge-redis-slave
+  namespace: edge-system
+  labels:
+    app: redis
+    app.kubernetes.io/managed-by: Helm
+    chart: redis-12.7.4
+    heritage: Helm
+    release: edge-redis
+  annotations:
+    meta.helm.sh/release-name: edge-redis
+    meta.helm.sh/release-namespace: edge-system
+spec:
+  ports:
+    - name: redis
+      protocol: TCP
+      port: 6379
+      targetPort: redis
+  selector:
+    app: redis
+    release: edge-redis
+    role: slave
+  type: ClusterIP
+  sessionAffinity: None
+---
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: edge-redis-master
+  namespace: edge-system
+  labels:
+    app: redis
+    app.kubernetes.io/managed-by: Helm
+    chart: redis-12.7.4
+    heritage: Helm
+    release: edge-redis
+  annotations:
+    meta.helm.sh/release-name: edge-redis
+    meta.helm.sh/release-namespace: edge-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      release: edge-redis
+      role: master
+  template:
+    metadata:
+      labels:
+        app: redis
+        chart: redis-12.7.4
+        release: edge-redis
+        role: master
+      annotations:
+        checksum/configmap: 07d4ceeb3116f5149a82fed25729591853341f1827d2e9cbffda78c3ad29ec98
+        checksum/health: a057afe73e64196421c8452095155dce2e11604c2ca3ce48ff1a90dcd675d367
+        checksum/secret: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    spec:
+      volumes:
+        - name: start-scripts
+          configMap:
+            name: edge-redis-scripts
+            defaultMode: 493
+        - name: health
+          configMap:
+            name: edge-redis-health
+            defaultMode: 493
+        - name: config
+          configMap:
+            name: edge-redis
+            defaultMode: 420
+        - name: redis-tmp-conf
+          emptyDir: {}
+      containers:
+        - name: redis
+          image: 'docker.io/bitnami/redis:6.0.10-debian-10-r19'
+          command:
+            - /bin/bash
+            - '-c'
+            - /opt/bitnami/scripts/start-scripts/start-master.sh
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          env:
+            - name: REDIS_REPLICATION_MODE
+              value: master
+            - name: ALLOW_EMPTY_PASSWORD
+              value: 'yes'
+            - name: REDIS_TLS_ENABLED
+              value: 'no'
+            - name: REDIS_PORT
+              value: '6379'
+          resources: {}
+          volumeMounts:
+            - name: start-scripts
+              mountPath: /opt/bitnami/scripts/start-scripts
+            - name: health
+              mountPath: /health
+            - name: redis-data
+              mountPath: /data
+            - name: config
+              mountPath: /opt/bitnami/redis/mounted-etc
+            - name: redis-tmp-conf
+              mountPath: /opt/bitnami/redis/etc/
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - '-c'
+                - /health/ping_liveness_local.sh 5
+            initialDelaySeconds: 5
+            timeoutSeconds: 6
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 5
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - '-c'
+                - /health/ping_readiness_local.sh 1
+            initialDelaySeconds: 5
+            timeoutSeconds: 2
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 5
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1001
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      serviceAccountName: default
+      serviceAccount: default
+      securityContext:
+        fsGroup: 1001
+      schedulerName: default-scheduler
+  volumeClaimTemplates:
+    - kind: PersistentVolumeClaim
+      apiVersion: v1
+      metadata:
+        name: redis-data
+        labels:
+          app: redis
+          component: master
+          heritage: Helm
+          release: edge-redis
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 6Gi
+        storageClassName: local-path
+        volumeMode: Filesystem
+  serviceName: edge-redis-headless
+---
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: edge-redis-slave
+  namespace: edge-system
+  labels:
+    app: redis
+    app.kubernetes.io/managed-by: Helm
+    chart: redis-12.7.4
+    heritage: Helm
+    release: edge-redis
+  annotations:
+    meta.helm.sh/release-name: edge-redis
+    meta.helm.sh/release-namespace: edge-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      release: edge-redis
+      role: slave
+  template:
+    metadata:
+      labels:
+        app: redis
+        chart: redis-12.7.4
+        release: edge-redis
+        role: slave
+      annotations:
+        checksum/configmap: 07d4ceeb3116f5149a82fed25729591853341f1827d2e9cbffda78c3ad29ec98
+        checksum/health: a057afe73e64196421c8452095155dce2e11604c2ca3ce48ff1a90dcd675d367
+        checksum/secret: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    spec:
+      volumes:
+        - name: start-scripts
+          configMap:
+            name: edge-redis-scripts
+            defaultMode: 493
+        - name: health
+          configMap:
+            name: edge-redis-health
+            defaultMode: 493
+        - name: config
+          configMap:
+            name: edge-redis
+            defaultMode: 420
+        - name: redis-tmp-conf
+          emptyDir: {}
+      containers:
+        - name: redis
+          image: 'docker.io/bitnami/redis:6.0.10-debian-10-r19'
+          command:
+            - /bin/bash
+            - '-c'
+            - /opt/bitnami/scripts/start-scripts/start-slave.sh
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          env:
+            - name: REDIS_REPLICATION_MODE
+              value: slave
+            - name: REDIS_MASTER_HOST
+              value: >-
+                edge-redis-master-0.edge-redis-headless.edge-system.svc.cluster.local
+            - name: REDIS_MASTER_PORT_NUMBER
+              value: '6379'
+            - name: ALLOW_EMPTY_PASSWORD
+              value: 'yes'
+            - name: REDIS_TLS_ENABLED
+              value: 'no'
+            - name: REDIS_PORT
+              value: '6379'
+          resources: {}
+          volumeMounts:
+            - name: start-scripts
+              mountPath: /opt/bitnami/scripts/start-scripts
+            - name: health
+              mountPath: /health
+            - name: redis-data
+              mountPath: /data
+            - name: config
+              mountPath: /opt/bitnami/redis/mounted-etc
+            - name: redis-tmp-conf
+              mountPath: /opt/bitnami/redis/etc
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - '-c'
+                - /health/ping_liveness_local_and_master.sh 5
+            initialDelaySeconds: 30
+            timeoutSeconds: 6
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 5
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - '-c'
+                - /health/ping_readiness_local_and_master.sh 10
+            initialDelaySeconds: 5
+            timeoutSeconds: 11
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 5
+          securityContext:
+            runAsUser: 1001
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+      serviceAccountName: default
+      serviceAccount: default
+      securityContext:
+        fsGroup: 1001
+      schedulerName: default-scheduler
+  volumeClaimTemplates:
+    - kind: PersistentVolumeClaim
+      apiVersion: v1
+      metadata:
+        name: redis-data
+        labels:
+          app: redis
+          component: slave
+          heritage: Helm
+          release: edge-redis
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 6Gi
+        storageClassName: local-path
+        volumeMode: Filesystem
+  serviceName: edge-redis-headless
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-support-notifications
+  namespace: edge-system
+spec:
+  type: NodePort
+  selector:
+    app: edge-support-notifications
+  ports:
+    - port: 59860
+      nodePort: 59860
+      name: port-59860
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-support-notifications
+  namespace: edge-system
+  labels:
+    app: edge-support-notifications
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-support-notifications
+  template:
+    metadata:
+      name: edge-support-notifications
+      labels:
+        app: edge-support-notifications
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: edge-support-notifications
+      containers:
+        - name: edge-support-notifications
+          image: edgexfoundry/support-notifications:2.0.0
+          command:
+            - /support-notifications
+            - '--confdir'
+            - /res
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 59860
+          env:
+             - name: EDGEX_SECURITY_SECRET_STORE
+               value: "false"
+          volumeMounts:
+            - name: config
+              mountPath: /res
+          readinessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59860
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59860
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-core-data
+  namespace: edge-system
+spec:
+  type: NodePort
+  selector:
+    app: edge-core-data
+  ports:
+    - port: 59880
+      nodePort: 59880
+      name: port-59880
+    - port: 5563
+      name: port-5563
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-core-data
+  namespace: edge-system
+  labels:
+    app: edge-core-data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-core-data
+  template:
+    metadata:
+      name: edge-core-data
+      labels:
+        app: edge-core-data
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: edge-core-data
+      containers:
+        - name: edge-core-data
+          image: edgexfoundry/core-data:2.0.0
+          command:
+            - /core-data
+            - '--confdir'
+            - /res
+          imagePullPolicy: Always
+          env:
+            - name: EDGEX_SECURITY_SECRET_STORE
+              value: "false"
+          volumeMounts:
+           - name: config
+             mountPath: /res
+          ports:
+            - containerPort: 59880
+            - containerPort: 5563
+          readinessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59880
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59880
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-core-metadata
+  namespace: edge-system
+spec:
+  type: NodePort
+  selector:
+    app: edge-core-metadata
+  ports:
+    - port: 59881
+      nodePort: 59881
+      name: port-59881
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-core-metadata
+  namespace: edge-system
+  labels:
+    app: edge-core-metadata
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-core-metadata
+  template:
+    metadata:
+      name: edge-core-metadata
+      labels:
+        app: edge-core-metadata
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: edge-core-metadata
+      containers:
+        - name: edge-core-metadata
+          image: edgexfoundry/core-metadata:2.0.0
+          command:
+            - /core-metadata
+            - '--confdir'
+            - /res
+          env:
+            - name: EDGEX_SECURITY_SECRET_STORE
+              value: "false"
+          volumeMounts:
+             - name: config
+               mountPath: /res
+          ports:
+            - containerPort: 59881
+          readinessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59881
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59881
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-core-command
+  namespace: edge-system
+spec:
+  type: NodePort
+  selector:
+    app: edge-core-command
+  ports:
+    - port: 59882
+      nodePort: 59882
+      name: port-59882
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-core-command
+  namespace: edge-system
+  labels:
+    app: edge-core-command
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-core-command
+  template:
+    metadata:
+      name: edge-core-command
+      labels:
+        app: edge-core-command
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: edge-core-command
+      containers:
+        - name: edge-core-command
+          image: edgexfoundry/core-command:2.0.0
+          command:
+            - /core-command
+            - '--confdir'
+            - /res
+          imagePullPolicy: Always
+          env:
+            - name: EDGEX_SECURITY_SECRET_STORE
+              value: "false"
+          volumeMounts:
+            - name: config
+              mountPath: /res
+          ports:
+            - containerPort: 59882
+          readinessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59882
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59882
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-support-scheduler
+  namespace: edge-system
+spec:
+  type: NodePort
+  selector:
+    app: edge-support-scheduler
+  ports:
+    - port: 59861
+      nodePort: 59861
+      name: port-59861
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-support-scheduler
+  namespace: edge-system
+  labels:
+    app: edge-support-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-support-scheduler
+  template:
+    metadata:
+      name: edge-support-scheduler
+      labels:
+        app: edge-support-scheduler
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: edge-support-scheduler
+      containers:
+        - name: edge-support-scheduler
+          image: edgexfoundry/support-scheduler:2.0.0
+          command:
+            - /support-scheduler
+            - '--confdir'
+            - /res
+          imagePullPolicy: Always
+          env:
+            - name: EDGEX_SECURITY_SECRET_STORE
+              value: "false"
+          volumeMounts:
+            - name: config
+              mountPath: /res
+          ports:
+            - containerPort: 59861
+          readinessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59861
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59861
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: edge-kuiper-claim
+  namespace: edge-system
+spec:
+  storageClassName: local-path
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100M
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: kuiper-source
+  namespace: edge-system
+data:
+  edgex.yaml: |
+    #Global Edgex configurations
+    default:
+      protocol: redis
+      server: edge-redis-master-0.edge-redis-headless
+      port: 6379
+      topic: rules-events
+      type: redis
+    #  Below is optional configurations settings for mqtt
+    #  type: mqtt
+    #  optional:
+    #    ClientId: client1
+    #    Username: user1
+    #    Password: password
+    #    Qos: 1
+    #    KeepAlive: 5000
+    #    Retained: true/false
+    #    ConnectionPayload:
+    #    CertFile:
+    #    KeyFile:
+    #    CertPEMBlock:
+    #    KeyPEMBlock:
+    #    SkipCertVerify: true/false
+
+    #Override the global configurations
+    #application_conf: #Conf_key
+    #  protocol: tcp
+    #  server: localhost
+    #  port: 5571
+    #  topic: application
+
+    #mqtt_conf: #Conf_key
+    # protocol: tcp
+    #  server: 127.0.0.1
+    #  port: 1883
+    #  topic: events
+    #  type: mqtt
+    #  optional:
+    #    ClientId: "client1"
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: kuiper-conf
+  namespace: edge-system
+data:
+  kuiper.yaml: >
+    basic:
+      # true|false, with debug level, it prints more debug info
+      debug: true
+      # true|false, if it's set to true, then the log will be print to console
+      consoleLog: true
+      # true|false, if it's set to true, then the log will be print to log file
+      fileLog: true
+      # How many hours to split the file
+      rotateTime: 24
+      # Maximum file storage hours
+      maxAge: 72
+      # CLI ip
+      ip: 0.0.0.0
+      # CLI port
+      port: 20498
+      # REST service ip
+      restIp: 0.0.0.0
+      # REST service port
+      restPort: 59720
+      #  restTls:
+      #    certfile: /var/https-server.crt
+      #    keyfile: /var/https-server.key
+      # Prometheus settings
+      prometheus: false
+      prometheusPort: 20499
+      # The URL where hosts all of pre-build plugins. By default it's at packages.emqx.io
+      # There could be several hosts (host can be separated with comma), if same package could be found in the several hosts,
+      # then the package in the 1st host will have the highest priority.
+      pluginHosts: https://www.emqx.io/downloads
+
+    # The default options for all rules. Each rule can override this setting by defining its own option
+    rule:
+      # The qos of the rule. The values can be 0: At most once; 1: At least once; 2: Exactly once
+      # If qos is bigger than 0, the checkpoint mechanism will launch to save states so that they can be
+      # restored for unintended interrupt or planned restart of the rule. The performance may be affected
+      # to enable the checkpoint mechanism
+      qos: 0
+      # The interval in millisecond to run the checkpoint mechanism.
+      checkpointInterval: 300000
+      # Whether to send errors to sinks
+      sendError: true
+
+    sink:
+      # The cache persistence threshold size. If the message in sink cache is larger than 10, then it triggers persistence. If you find
+      # the remote system is slow to response, or sink throughput is small, then it's recommend to increase below 2 configurations.
+      # More memory is required with the increase of below 2 configurations.
+      # If the message count reaches below value, then it triggers persistence.
+      cacheThreshold: 10
+      # The message persistence is triggered by a ticker, and cacheTriggerCount is for using configure the count to trigger the persistence procedure
+      # regardless if the message number reaches cacheThreshold or not. This is to prevent the data won't be saved as the cache never pass the threshold.
+      cacheTriggerCount: 15
+
+      # Control to disable cache or not. If it's set to true, then the cache will be disabled, otherwise, it will be enabled.
+      disableCache: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-kuiper
+  namespace: edge-system
+spec:
+  type: NodePort
+  selector:
+    app: edge-kuiper
+  ports:
+    - port: 59720
+      nodePort: 59720
+      name: port-59720
+    - port: 20498
+      name: port-20498
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: edge-kuiper
+  namespace: edge-system
+  labels:
+    app: edge-kuiper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-kuiper
+  template:
+    metadata:
+      name: edge-kuiper
+      labels:
+        app: edge-kuiper
+    spec:
+      volumes:
+        - name: kuiper-source
+          configMap:
+            name: kuiper-source
+        - name: kuiper-conf
+          configMap:
+            name: kuiper-conf
+        - name: kuiper-data
+          persistentVolumeClaim:
+            claimName: edge-kuiper-claim
+      containers:
+        - name: edge-kuiper
+          image: emqx/kuiper:1.2.1-alpine
+          ports:
+            - containerPort: 59720
+              protocol: TCP
+            - containerPort: 20498
+              protocol: TCP
+          env:
+            - name: EDGEX_SECURITY_SECRET_STORE
+              value: 'false'
+          resources: {}
+          volumeMounts:
+            - name: kuiper-data
+              mountPath: /kuiper/data
+            - name: kuiper-source
+              mountPath: /kuiper/etc/sources/edgex.yaml
+              subPath: edgex.yaml
+            - name: kuiper-conf
+              mountPath: /kuiper/etc/kuiper.yaml
+              subPath: kuiper.yaml
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 59720
+              scheme: HTTP
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
+            periodSeconds: 20
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 59720
+              scheme: HTTP
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: app-service-configurable
+  namespace: edge-system
+data:
+  configuration.toml: >
+    [Writable]
+
+    LogLevel = "DEBUG"
+
+
+    [Writable.StoreAndForward]
+      Enabled = false
+      RetryInterval = "5m"
+      MaxRetryCount = 10
+
+      [Writable.Pipeline]
+      ExecutionOrder = "SetResponseData"
+        [Writable.Pipeline.Functions.SetResponseData]
+          [Writable.Pipeline.Functions.SetResponseData.Parameters]
+          ResponseContentType = ""
+        [Writable.Pipeline.Functions.FilterByProfileName]
+          [Writable.Pipeline.Functions.FilterByProfileName.Parameters]
+          ProfileNames = ""
+          FilterOut = "false"
+        [Writable.Pipeline.Functions.FilterByDeviceName]
+          [Writable.Pipeline.Functions.FilterByDeviceName.Parameters]
+          DeviceNames = ""
+          FilterOut = "false"
+        [Writable.Pipeline.Functions.FilterBySourceName]
+          [Writable.Pipeline.Functions.FilterBySourceName.Parameters]
+          SourceNames = ""
+          FilterOut = "false"
+        [Writable.Pipeline.Functions.FilterByResourceName]
+          [Writable.Pipeline.Functions.FilterByResourceName.Parameters]
+          ResourceNames = ""
+          FilterOut = "false"
+      # InsecureSecrets are required for Redis is used for message bus
+      [Writable.InsecureSecrets]
+        [Writable.InsecureSecrets.DB]
+        path = "redisdb"
+          [Writable.InsecureSecrets.DB.Secrets]
+          username = ""
+          password = ""
+
+    [Service]
+
+    HealthCheckInterval = "10s"
+
+    Host = "edge-app-rules-engine"
+
+    Port = 59701
+
+    ServerBindAddr = "0.0.0.0" # if blank, uses default Go behavior
+    https://golang.org/pkg/net/#Listen
+
+    StartupMsg = "app-rules-engine has Started"
+
+    MaxResultCount = 0 # Not curently used by App Services.
+
+    MaxRequestSize = 0 # Not curently used by App Services.
+
+    RequestTimeout = "5s"
+
+
+    [Registry]
+
+    Host = "localhost"
+
+    Port = 8500
+
+    Type = "consul"
+
+
+    # Database is require when Redis is used for message bus
+
+    # Type is used as the secret name when getting credentials from the Secret
+    Store
+
+    [Database]
+
+    Type = "redisdb"
+
+    Host = "edge-redis-master-0.edge-redis-headless"
+
+    Port = 6379
+
+    Timeout = "30s"
+
+
+    # SecretStore is required when Store and Forward is enabled and running with
+    security
+
+    # so Database credentials can be pulled from Vault. Also now require when
+    running with secure Consul
+
+    # Note when running in docker from compose file set the following
+    environment variables:
+
+    #   - SecretStore_Host: edgex-vault
+
+    [SecretStore]
+
+    Type = 'vault'
+
+    Host = 'localhost'
+
+    Port = 8200
+
+    Path = 'app-rules-engine/'
+
+    Protocol = 'http'
+
+    RootCaCertPath = ''
+
+    ServerName = ''
+
+    TokenFile = '/tmp/edgex/secrets/app-rules-engine/secrets-token.json'
+      [SecretStore.Authentication]
+      AuthType = 'X-Vault-Token'
+
+    [Clients]
+      # Used for version check on start-up
+      [Clients.core-metadata]
+      Protocol = 'http'
+      Host = 'edge-core-metadata'
+      Port = 59881
+
+
+    [Trigger]
+
+    Type="edgex-messagebus"
+      [Trigger.EdgexMessageBus]
+      Type = "redis"
+        [Trigger.EdgexMessageBus.SubscribeHost]
+        Host = "edge-redis-master-0.edge-redis-headless"
+        Port = 6379
+        Protocol = "redis"
+        SubscribeTopics="edgex/events/#"
+        [Trigger.EdgexMessageBus.PublishHost]
+        Host = "edge-redis-master-0.edge-redis-headless"
+        Port = 6379
+        Protocol = "redis"
+        PublishTopic="rules-events"
+        [Trigger.EdgexMessageBus.Optional]
+        authmode = 'usernamepassword'  # required for redis messagebus (secure or insecure).
+        secretname = 'redisdb'
+        # Default MQTT Specific options that need to be here to enable evnironment variable overrides of them
+        # Client Identifiers
+        ClientId ="core-data"
+        # Connection information
+        Qos          =  "0" # Quality of Sevice values are 0 (At most once), 1 (At least once) or 2 (Exactly once)
+        KeepAlive    =  "10" # Seconds (must be 2 or greater)
+        Retained     = "false"
+        AutoReconnect  = "true"
+        ConnectTimeout = "5" # Seconds
+        # TLS configuration - Only used if Cert/Key file or Cert/Key PEMblock are specified
+        SkipCertVerify = "false"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-app-rules-engine
+  namespace: edge-system
+spec:
+  type: NodePort
+  selector:
+    app: edge-app-rules-engine
+  ports:
+    - port: 59701
+      nodePort: 59701
+      name: port-59701
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-app-rules-engine
+  namespace: edge-system
+  labels:
+    app: edge-app-rules-engine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-app-rules-engine
+  template:
+    metadata:
+      name: edge-app-rules-engine
+      labels:
+        app: edge-app-rules-engine
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: app-service-configurable
+      containers:
+        - name: app-service-configurable
+          image: edgexfoundry/app-service-configurable:2.0.0
+          command:
+            - /app-service-configurable
+            - '--confdir'
+            - /res
+          env:
+            - name: EDGEX_SECURITY_SECRET_STORE
+              value: "false"
+          volumeMounts:
+            - name: config
+              mountPath: /res
+          ports:
+            - containerPort: 59701
+          readinessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59701
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59701
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-rest-conf
+  namespace: edge-system
+data:
+  configuration.toml: >
+    [Writable]
+
+    LogLevel = 'DEBUG'
+      # InsecureSecrets are required for when Redis is used for message bus
+      [Writable.InsecureSecrets]
+        [Writable.InsecureSecrets.DB]
+        path = "redisdb"
+          [Writable.InsecureSecrets.DB.Secrets]
+          username = ""
+          password = ""
+
+    [Service]
+
+    HealthCheckInterval = '10s'
+
+    Host = 'edge-device-rest'
+
+    Port = 59986
+
+    ServerBindAddr = '0.0.0.0'  # blank value defaults to Service.Host value
+
+    StartupMsg = 'device rest started'
+
+    # MaxRequestSize limit the request body size in byte of put command
+
+    MaxRequestSize = 0 # value 0 unlimit the request size.
+
+    RequestTimeout = '5s'
+
+
+    [Registry]
+
+    Host = 'localhost'
+
+    Port = 8500
+
+    Type = 'consul'
+
+
+    [Clients]
+      [Clients.core-data]
+      Protocol = 'http'
+      Host = 'edge-core-data'
+      Port = 59880
+
+      [Clients.core-metadata]
+      Protocol = 'http'
+      Host = 'edge-core-metadata'
+      Port = 59881
+
+    [MessageQueue]
+
+    Protocol = 'redis'
+
+    Host = 'edge-redis-master-0.edge-redis-headless'
+
+    Port = 6379
+
+    Type = 'redis'
+
+    AuthMode = 'usernamepassword'  # required for redis messagebus (secure or
+    insecure).
+
+    SecretName = "redisdb"
+
+    PublishTopicPrefix = 'edgex/events/device' #
+    /<device-profile-name>/<device-name>/<source-name> will be added to this
+    Publish Topic prefix
+      [MessageQueue.Optional]
+      # Default MQTT Specific options that need to be here to enable environment variable overrides of them
+      # Client Identifiers
+      ClientId = "device-rest"
+      # Connection information
+      Qos = "0" # Quality of Sevice values are 0 (At most once), 1 (At least once) or 2 (Exactly once)
+      KeepAlive = "10" # Seconds (must be 2 or greater)
+      Retained = "false"
+      AutoReconnect = "true"
+      ConnectTimeout = "5" # Seconds
+      SkipCertVerify = "false" # Only used if Cert/Key file or Cert/Key PEMblock are specified
+
+    [SecretStore]
+
+    Type = 'vault'
+
+    Host = 'localhost'
+
+    Port = 8200
+
+    Path = 'device-rest/'
+
+    Protocol = 'http'
+
+    RootCaCertPath = ''
+
+    ServerName = ''
+
+    TokenFile = '/tmp/edgex/secrets/device-rest/secrets-token.json'
+      [SecretStore.Authentication]
+      AuthType = 'X-Vault-Token'
+
+    [Device]
+
+    DataTransform = true
+
+    MaxCmdOps = 128
+
+    MaxCmdValueLen = 256
+
+    ProfilesDir = './res/profiles'
+
+    DevicesDir = './res/devices'
+
+    UpdateLastConnected = false
+
+    Labels = []
+
+    EnableAsyncReadings = true
+
+    AsyncBufferSize = 16
+
+    UseMessageBus = true
+
+
+    # Driver configs
+
+    [Driver]
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-rest-devices
+  namespace: edge-system
+data:
+  sample-devices.toml: |
+    # Pre-define Devices
+    [[DeviceList]]
+      Name = 'sample-json'
+      ProfileName = 'sample-json'
+      Description = 'RESTful Device that sends in JSON data'
+      Labels = [ 'rest', 'json' ]
+      [DeviceList.Protocols]
+        [DeviceList.Protocols.other]
+    [[DeviceList]]
+      Name = 'sample-image'
+      ProfileName = 'sample-image'
+      Description = 'RESTful Device that sends in binary image data'
+      Labels = [ 'rest', 'binary', 'image' ]
+      [DeviceList.Protocols]
+        [DeviceList.Protocols.other]
+    [[DeviceList]]
+      Name = 'sample-numeric'
+      ProfileName = 'sample-numeric'
+      Description = 'RESTful Device that sends in numeric data'
+      Labels = [ 'rest', 'numeric', 'float', 'int' ]
+      [DeviceList.Protocols]
+        [DeviceList.Protocols.other]
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-rest-profiles
+  namespace: edge-system
+data:
+  sample-image-device.yaml: |
+    name: "sample-image"
+    manufacturer: "Intel Corp."
+    model: "Some 3rd party app sending binary image"
+    labels:
+     - "rest"
+     - "binary"
+    description: "REST Device that sends in binary image"
+
+    deviceResources:
+      - name: jpeg
+        isHidden: true
+        description: "JPEG Image binary message"
+        properties:
+          valueType: "Binary"
+          readWrite: "W"
+          mediaType: "image/jpeg"
+      - name: png
+        isHidden: true
+        description: "PNG Image binary message"
+        properties:
+          valueType: "Binary"
+          readWrite: "W"
+          mediaType: "image/png"
+  sample-json-device.yaml: |
+    name: "sample-json"
+    manufacturer: "Intel Corp."
+    model: "Some 3rd party app sending JSON"
+    labels:
+     - "rest"
+     - "json"
+    description: "REST Device that sends in Json"
+
+    deviceResources:
+      - name: json
+        isHidden: true
+        description: "JSON message"
+        properties:
+          valueType: "String"
+          readWrite: "W"
+          mediaType: "application/json"
+  sample-numeric-device.yaml: |
+    name: "sample-numeric"
+    manufacturer: "Intel Corp."
+    model: "Some 3rd party App sending int & floats"
+    labels:
+     - "rest"
+     - "float64"
+     - "int64"
+    description: "REST Device that sends in int and float"
+
+    deviceResources:
+      - name: int
+        isHidden: true
+        description: "Int64 value"
+        properties:
+          valueType: "Int64"
+          readWrite: "W"
+          mediaType: "text/plain"
+      - name: float
+        isHidden: true
+        description: "Float64 value"
+        properties:
+          valueType: "Float64"
+          readWrite: "W"
+          mediaType: "text/plain"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-device-rest
+  namespace: edge-system
+spec:
+  type: NodePort
+  selector:
+    app: edge-device-rest
+  ports:
+    - port: 59986
+      nodePort: 59986
+      name: port-59986
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: edge-device-rest
+  namespace: edge-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-device-rest
+  template:
+    metadata:
+      name: edge-device-rest
+      creationTimestamp: null
+      labels:
+        app: edge-device-rest
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: edge-device-rest-conf
+            defaultMode: 420
+        - name: devices
+          configMap:
+            name: edge-device-rest-devices
+            defaultMode: 420
+        - name: profiles
+          configMap:
+            name: edge-device-rest-profiles
+            defaultMode: 420
+      containers:
+        - name: edge-device-rest
+          image: edgexfoundry/device-rest:2.0.0
+          command:
+            - /device-rest
+            - '--confdir'
+            - /res
+          ports:
+            - containerPort: 59986
+              protocol: TCP
+          env:
+            - name: EDGEX_SECURITY_SECRET_STORE
+              value: 'false'
+          resources: {}
+          volumeMounts:
+            - name: config
+              mountPath: /res
+            - name: devices
+              mountPath: /res/devices
+            - name: profiles
+              mountPath: /res/profiles
+          livenessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59986
+              scheme: HTTP
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
+            periodSeconds: 20
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59986
+              scheme: HTTP
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3    
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: edge-mqtt-broker-claim
+  namespace: edge-system
+spec:
+  storageClassName: local-path
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100M
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-mqtt-broker
+  namespace: edge-system
+spec:
+  selector:
+    app: edge-mqtt-broker
+  ports:
+    - port: 1883
+      name: port-1883
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-mqtt-broker
+  namespace: edge-system
+  labels:
+    app: edge-mqtt-broker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-mqtt-broker
+  template:
+    metadata:
+      name: edge-mqtt-broker
+      labels:
+        app: edge-mqtt-broker
+    spec:
+      volumes:
+        - name: mqtt-volume
+          persistentVolumeClaim:
+            claimName: edge-mqtt-broker-claim
+      containers:
+        - name: edge-mqtt-broker
+          image: eclipse-mosquitto:1.6.10
+          ports:
+            - containerPort: 1883
+          readinessProbe:
+            tcpSocket:
+              port: 1883
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 1883
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - mountPath: /mqtt/config
+              name: mqtt-volume
+            - mountPath: /mqtt/data
+              name: mqtt-volume
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-mqtt-conf
+  namespace: edge-system
+data:
+  configuration.toml: >
+    [Writable]
+
+    LogLevel = 'DEBUG'
+      # InsecureSecrets are required for when Redis is used for message bus
+      [Writable.InsecureSecrets]
+        [Writable.InsecureSecrets.DB]
+        path = "redisdb"
+          [Writable.InsecureSecrets.DB.Secrets]
+          username = ""
+          password = ""
+        [Writable.InsecureSecrets.MQTT]
+        path = "credentials"
+          [Writable.InsecureSecrets.MQTT.Secrets]
+          username = ""
+          password = ""
+
+    [Service]
+
+    HealthCheckInterval = '10s'
+
+    Host = 'edge-device-mqtt'
+
+    Port = 59982
+
+    ServerBindAddr = '0.0.0.0'  # blank value defaults to Service.Host value
+
+    StartupMsg = 'device mqtt started'
+
+    # MaxRequestSize limit the request body size in byte of put command
+
+    MaxRequestSize = 0 # value 0 unlimit the request size.
+
+    RequestTimeout = '5s'
+
+
+    [Registry]
+
+    Host = 'localhost'
+
+    Port = 8500
+
+    Type = 'consul'
+
+
+    [Clients]
+      [Clients.core-data]
+      Protocol = 'http'
+      Host = 'edge-core-data'
+      Port = 59880
+
+      [Clients.core-metadata]
+      Protocol = 'http'
+      Host = 'edge-core-metadata'
+      Port = 59881
+
+    [MessageQueue]
+
+    Protocol = 'redis'
+
+    Host = 'edge-redis-master-0.edge-redis-headless'
+
+    Port = 6379
+
+    Type = 'redis'
+
+    AuthMode = 'usernamepassword'  # required for redis messagebus (secure or
+    insecure).
+
+    SecretName = "redisdb"
+
+    PublishTopicPrefix = 'edgex/events/device' #
+    /<device-profile-name>/<device-name>/<source-name> will be added to this
+    Publish Topic prefix
+      [MessageQueue.Optional]
+      # Default MQTT Specific options that need to be here to enable environment variable overrides of them
+      # Client Identifiers
+      ClientId = "device-mqtt"
+      # Connection information
+      Qos = "0" # Quality of Sevice values are 0 (At most once), 1 (At least once) or 2 (Exactly once)
+      KeepAlive = "10" # Seconds (must be 2 or greater)
+      Retained = "false"
+      AutoReconnect = "true"
+      ConnectTimeout = "5" # Seconds
+      SkipCertVerify = "false" # Only used if Cert/Key file or Cert/Key PEMblock are specified
+
+    [SecretStore]
+
+    Type = 'vault'
+
+    Host = 'localhost'
+
+    Port = 8200
+
+    Path = 'device-mqtt/'
+
+    Protocol = 'http'
+
+    RootCaCertPath = ''
+
+    ServerName = ''
+
+    TokenFile = '/tmp/edgex/secrets/device-mqtt/secrets-token.json'
+        [SecretStore.Authentication]
+        AuthType = 'X-Vault-Token'
+
+    [Device]
+
+    DataTransform = true
+
+    MaxCmdOps = 128
+
+    MaxCmdValueLen = 256
+
+    ProfilesDir = './res/profiles'
+
+    DevicesDir = './res/devices'
+
+    UpdateLastConnected = false
+
+    Labels = []
+
+    EnableAsyncReadings = true
+
+    AsyncBufferSize = 16
+
+    UseMessageBus = true
+
+
+    [MQTTBrokerInfo]
+
+    Schema = 'tcp'
+
+    Host = 'edge-mqtt-broker'
+
+    Port = 1883
+
+    Qos = 0
+
+    KeepAlive = 3600
+
+    ClientId = 'device-mqtt'
+
+
+    CredentialsRetryTime = 120 # Seconds
+
+    CredentialsRetryWait = 1 # Seconds
+
+    ConnEstablishingRetry = 10
+
+    ConnRetryWaitTime = 5
+
+
+    # AuthMode is the MQTT broker authentication mechanism. Currently, 'none'
+    and 'usernamepassword' is the only AuthMode supported by this service, and
+    the secret keys are 'username' and 'password'.
+
+    AuthMode = 'none'
+
+    CredentialsPath = 'credentials'
+
+
+    IncomingTopic = 'DataTopic'
+
+    responseTopic = 'ResponseTopic'
+
+        [MQTTBrokerInfo.Writable]
+        # ResponseFetchInterval specifies the retry interval(milliseconds) to fetch the command response from the MQTT broker
+        ResponseFetchInterval = 500
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-mqtt-devices
+  namespace: edge-system
+data:
+  mqtt.test.device.toml: |
+    # Pre-define Devices
+    [[DeviceList]]
+      Name = 'MQTT-test-device'
+      ProfileName = 'Test-Device-MQTT-Profile'
+      Description = 'MQTT device is created for test purpose'
+      Labels = [ 'MQTT', 'test' ]
+      [DeviceList.Protocols]
+        [DeviceList.Protocols.mqtt]
+           CommandTopic = 'CommandTopic'
+    #    [[DeviceList.AutoEvents]]
+    #       Interval = '20s'
+    #       OnChange = false
+    #       SourceName = 'testrandfloat32'
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-mqtt-profiles
+  namespace: edge-system
+data:
+  mqtt.test.device.profile.yml: |
+    name: "Test-Device-MQTT-Profile"
+    manufacturer: "Dell"
+    model: "MQTT-2"
+    labels:
+    - "test"
+    description: "Test device profile"
+    deviceResources:
+    -
+      name: randfloat32
+      isHidden: true
+      description: "device random number with Base64 encoding"
+      properties:
+        valueType: "Float32"
+        readWrite: "R"
+        defaultValue: "0.00"
+        minimum: "0.00"
+        maximum: "100.00"
+    -
+      name: randfloat64
+      isHidden: true
+      description: "device random number with e notion"
+      properties:
+        valueType: "Float64"
+        readWrite: "R"
+        defaultValue: "0.00"
+        minimum: "0.00"
+        maximum: "100.00"
+    -
+      name: ping
+      isHidden: true
+      description: "device awake"
+      properties:
+        valueType: "String"
+        readWrite: "R"
+        defaultValue: "oops"
+    -
+      name: message
+      isHidden: true
+      description: "device notification message"
+      properties:
+        valueType: "String"
+        readWrite: "RW"
+        scale: ""
+        offset: ""
+        base: ""
+
+    deviceCommands:
+    -
+      name: testrandfloat32
+      readWrite: "R"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "randfloat32" }
+    -
+      name: testrandfloat64
+      readWrite: "R"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "randfloat64" }
+    -
+      name: testping
+      readWrite: "R"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "ping" }
+    -
+      name: testmessage
+      readWrite: "RW"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "message" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-device-mqtt
+  namespace: edge-system
+spec:
+  selector:
+    app: edge-device-mqtt
+  ports:
+    - port: 59982
+      name: port-59982
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-device-mqtt
+  namespace: edge-system
+  labels:
+    app: edge-device-mqtt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-device-mqtt
+  template:
+    metadata:
+      name: edge-device-mqtt
+      labels:
+        app: edge-device-mqtt
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: edge-device-mqtt-conf
+        - name: devices
+          configMap:
+            name: edge-device-mqtt-devices 
+        - name: profiles
+          configMap:
+            name: edge-device-mqtt-profiles    
+      containers:
+        - name: edge-device-mqtt
+          image: edgexfoundry/device-mqtt:2.0.0
+          command:
+            - /device-mqtt
+            - '--confdir'
+            - /res
+          env:
+            - name: EDGEX_SECURITY_SECRET_STORE
+              value: 'false'
+          ports:
+            - containerPort: 59982
+          volumeMounts:
+            - name: config
+              mountPath: /res
+            - name: devices
+              mountPath: /res/devices
+            - name: profiles
+              mountPath: /res/profiles  
+          readinessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59982
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59982
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-modbus-conf
+  namespace: edge-system
+data:
+  configuration.toml: >-
+    [Writable]
+
+    LogLevel = 'DEBUG'
+      # InsecureSecrets are required for when Redis is used for message bus
+      [Writable.InsecureSecrets]
+        [Writable.InsecureSecrets.Sample]
+        path = "redisdb"
+          [Writable.InsecureSecrets.Sample.Secrets]
+          username = ""
+          password = ""
+
+    [Service]
+
+    HealthCheckInterval = '10s'
+
+    Host = 'edge-device-modbus'
+
+    Port = 59901
+
+    ServerBindAddr = '0.0.0.0'  # blank value defaults to Service.Host value
+
+    StartupMsg = 'device modbus started'
+
+    # MaxRequestSize limit the request body size in byte of put command
+
+    MaxRequestSize = 0 # value 0 unlimit the request size.
+
+    RequestTimeout = '5s'
+
+
+    [Registry]
+
+    Host = 'localhost'
+
+    Port = 8500
+
+    Type = 'consul'
+
+
+    [Clients]
+      [Clients.core-data]
+      Protocol = 'http'
+      Host = 'edge-core-data'
+      Port = 59880
+
+      [Clients.core-metadata]
+      Protocol = 'http'
+      Host = 'edge-core-metadata'
+      Port = 59881
+
+    [MessageQueue]
+
+    Protocol = 'redis'
+
+    Host = 'edge-redis-master-0.edge-redis-headless'
+
+    Port = 6379
+
+    Type = 'redis'
+
+    AuthMode = 'usernamepassword'  # required for redis messagebus (secure or
+    insecure).
+
+    SecretName = "redisdb"
+
+    PublishTopicPrefix = 'edgex/events/device' #
+    /<device-profile-name>/<device-name>/<source-name> will be added to this
+    Publish Topic prefix
+      [MessageQueue.Optional]
+      # Default MQTT Specific options that need to be here to enable environment variable overrides of them
+      # Client Identifiers
+      ClientId = "device-modbus"
+      # Connection information
+      Qos = "0" # Quality of Sevice values are 0 (At most once), 1 (At least once) or 2 (Exactly once)
+      KeepAlive = "10" # Seconds (must be 2 or greater)
+      Retained = "false"
+      AutoReconnect = "true"
+      ConnectTimeout = "5" # Seconds
+      SkipCertVerify = "false" # Only used if Cert/Key file or Cert/Key PEMblock are specified  [MessageQueue.Optional]
+
+    # Only used when EDGEX_SECURITY_SECRET_STORE=true which is now required for
+    secure Consul
+
+    [SecretStore]
+
+    Type = 'vault'
+
+    Host = 'localhost'
+
+    Port = 8200
+
+    Path = 'device-modbus/'
+
+    Protocol = 'http'
+
+    RootCaCertPath = ''
+
+    ServerName = ''
+
+    TokenFile = '/tmp/edgex/secrets/device-modbus/secrets-token.json'
+      [SecretStore.Authentication]
+      AuthType = 'X-Vault-Token'
+
+    [Device]
+
+    DataTransform = true
+
+    MaxCmdOps = 128
+
+    MaxCmdValueLen = 256
+
+    ProfilesDir = ''
+
+    DevicesDir = ''
+
+    UpdateLastConnected = false
+
+    Labels = []
+
+    EnableAsyncReadings = true
+
+    AsyncBufferSize = 16
+
+    UseMessageBus = true
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-modbus-devices
+  namespace: edge-system
+data:
+  modbus.test.devices.toml: |
+    # Pre-define Devices
+    [[DeviceList]]
+      Name = 'Modbus-TCP-test-device'
+      ProfileName = 'Test-Device-Modbus-Profile'
+      Description = 'This device is a product for monitoring and controlling digital inputs and outputs over a LAN.'
+      labels = [ 'Air conditioner','modbus TCP' ]
+      [DeviceList.Protocols]
+        [DeviceList.Protocols.modbus-tcp]
+           Address = '0.0.0.0'
+           Port = '1502'
+           UnitID = '1'
+           Timeout = "5"
+           IdleTimeout = "5"
+      [[DeviceList.AutoEvents]]
+        Interval = '20s'
+        OnChange = false
+        SourceName = 'HVACValues'
+
+    [[DeviceList]]
+      Name = 'Modbus-RTU-test-device'
+      ProfileName = 'Test-Device-Modbus-Profile'
+      Description = 'This device is a product for monitoring and controlling digital inputs and outputs over a LAN.'
+      labels = [ 'Air conditioner','modbus RTU' ]
+      [DeviceList.Protocols]
+        [DeviceList.Protocols.modbus-rtu]
+           Address = '/tmp/slave'
+           BaudRate = '19200'
+           DataBits = '8'
+           StopBits = '1'
+           Parity = 'N'
+           UnitID = '1'
+           Timeout = "5"
+           IdleTimeout = "5"
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-modbus-profiles
+  namespace: edge-system
+data:
+  modbus.test.device.profile.yml: >
+    name: "Test-Device-Modbus-Profile"
+
+    manufacturer: "Cool Automation"
+
+    model: "CoolMasterNet"
+
+    labels:
+
+    - "HVAC"
+
+    - "Air conditioner"
+
+    description: "CoolMasterNet is an unique communication bridge that
+    seamlessly connects advanced VRF / Split Air Conditioning Systems and home
+    automation / Building Management Systems (BMS) controllers."
+
+
+    deviceResources:
+
+    -
+      name: "SwitchA"
+      isHidden: true
+      description: "On/Off , 0-OFF 1-ON"
+      attributes:
+        { primaryTable: "COILS", startingAddress: 0 }
+      properties:
+        valueType: "Bool"
+        readWrite: "RW"
+        scale: "1"
+        minimum: "0"
+        maximum: "1"
+        defaultValue: "0"
+    -
+      name: "SwitchB"
+      isHidden: true
+      description: "On/Off , 0-OFF 1-ON"
+      attributes:
+        { primaryTable: "COILS", startingAddress: 14 }
+      properties:
+        valueType: "Bool"
+        readWrite: "RW"
+        scale: "1"
+        minimum: "0"
+        maximum: "1"
+        defaultValue: "0"
+    -
+      name: "OperationMode"
+      isHidden: true
+      description: "0-Cool 1-Heat 2-Auto 3-Dry 4-HAUX 5-Fan 6-HH 8-VAM Auto 9-VAM Bypass 10-VAM Heat Exc 11-VAM Normal"
+      attributes:
+        { primaryTable: "HOLDING_REGISTERS", startingAddress: 1 }
+      properties:
+        valueType: "Int16"
+        readWrite: "RW"
+        scale: "1"
+        minimum: "0"
+        maximum: "11"
+        defaultValue: "0"
+    -
+      name: "FanSpeed"
+      isHidden: true
+      description: "0-Low 1-Med 2-High 3-Auto 4-Top 5-Very Lo 7-VAM Super Hi 8-VAM Lo FreshUp 9-VAMHiFreshUp"
+      attributes:
+        { primaryTable: "HOLDING_REGISTERS", startingAddress: 2 }
+      properties:
+        valueType: "Int32"
+        readWrite: "RW"
+        scale: "1"
+        minimum: "0"
+        maximum: "9"
+        defaultValue: "0"
+    -
+      name: "RoomTemperature"
+      isHidden: false
+      description: "Room Temperature x10 °C (Read Only)"
+      attributes:
+        { primaryTable: "INPUT_REGISTERS", startingAddress: 3 }
+      properties:
+        valueType: "Float32"
+        readWrite: "R"
+        scale: "1"
+    -
+      name: "Temperature"
+      isHidden: true
+      description: "Temperature x10 °C"
+      attributes:
+        { primaryTable: "HOLDING_REGISTERS", startingAddress: 4 }
+      properties:
+        valueType: "Float64"
+        readWrite: "RW"
+        scale: "0.1"
+
+    deviceCommands:
+
+    -
+      name: "Switch"
+      readWrite: "RW"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "SwitchA", mappings: {"true":"ON","false":"OFF"} }
+        - { deviceResource: "SwitchB", mappings: {"true":"ON","false":"OFF"} }
+    -
+      name: "Values"
+      readWrite: "RW"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "SwitchA", mappings: {"true":"ON","false":"OFF"} }
+        - { deviceResource: "OperationMode", mappings: { "0":"Cool","1":"Heat","2":"Auto","3":"Dry","4":"HAUX","5":"Fan","6":"HH","8":"VAM Auto","9":"VAM Bypass","10":"VAM Heat","11":"VAM Normal"} }
+        - { deviceResource: "FanSpeed", mappings: { "0":"Low","1":"Med","2":"High","3":"Auto","4":"Top","5":"Very Lo","7":"VAM Super Hi","8":"VAM Lo FreshUp","9":"VAMHiFreshUp"} }
+        - { deviceResource: "Temperature" }
+    -
+      name: "HVACValues"
+      readWrite: "RW"
+      isHidden: false
+      resourceOperations:
+      - { deviceResource: "OperationMode", mappings: { "0":"Cool","1":"Heat","2":"Auto","3":"Dry","4":"HAUX","5":"Fan","6":"HH","8":"VAM Auto","9":"VAM Bypass","10":"VAM Heat","11":"VAM Normal"} }
+      - { deviceResource: "FanSpeed", mappings: { "0":"Low","1":"Med","2":"High","3":"Auto","4":"Top","5":"Very Lo","7":"VAM Super Hi","8":"VAM Lo FreshUp","9":"VAMHiFreshUp"} }
+      - { deviceResource: "Temperature" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-device-modbus
+  namespace: edge-system
+spec:
+  selector:
+    app: edge-device-modbus
+  type: NodePort
+  ports:
+    - port: 59901
+      name: port-59901
+      nodePort: 59901
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-device-modbus
+  namespace: edge-system
+  labels:
+    app: edge-device-modbus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-device-modbus
+  template:
+    metadata:
+      name: edge-device-modbus
+      labels:
+        app: edge-device-modbus
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: edge-device-modbus-conf
+        - name: devices
+          configMap:
+            name: edge-device-modbus-devices
+        - name: profiles
+          configMap:
+            name: edge-device-modbus-profiles    
+      containers:
+        - name: edge-device-modbus
+          image: edgexfoundry/device-modbus:2.0.0
+          command:
+            - /device-modbus
+            - '--confdir'
+            - /res
+          env:
+            - name: EDGEX_SECURITY_SECRET_STORE
+              value: 'false'
+          ports:
+            - containerPort: 59901
+          volumeMounts:
+            - name: config
+              mountPath: /res
+            - name: devices
+              mountPath: /res/devices
+            - name: profiles
+              mountPath: /res/profiles  
+          readinessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59901
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59901
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-snmp-conf
+  namespace: edge-system
+data:
+  configuration.toml: >
+    [Writable]
+
+    LogLevel = 'DEBUG'
+      # InsecureSecrets are required for when Redis is used for message bus
+      [Writable.InsecureSecrets]
+        [Writable.InsecureSecrets.DB]
+        path = "redisdb"
+          [Writable.InsecureSecrets.DB.Secrets]
+          username = ""
+          password = ""
+
+    [Service]
+
+    HealthCheckInterval = '10s'
+
+    Host = 'edge-device-snmp'
+
+    Port = 59993
+
+    ServerBindAddr = '0.0.0.0'  # blank value defaults to Service.Host value
+
+    StartupMsg = 'device snmp started'
+
+    # MaxRequestSize limit the request body size in byte of put command
+
+    MaxRequestSize = 0 # value 0 unlimit the request size.
+
+    RequestTimeout = '5s'
+
+
+    [Registry]
+
+    Host = 'localhost'
+
+    Port = 8500
+
+    Type = 'consul'
+
+
+    [Clients]
+      [Clients.core-data]
+      Protocol = 'http'
+      Host = 'edge-core-data'
+      Port = 59880
+
+      [Clients.core-metadata]
+      Protocol = 'http'
+      Host = 'edge-core-metadata'
+      Port = 59881
+
+    [MessageQueue]
+
+    Protocol = 'redis'
+
+    Host = 'edge-redis-master-0.edge-redis-headless'
+
+    Port = 6379
+
+    Type = 'redis'
+
+    AuthMode = 'usernamepassword'  # required for redis messagebus (secure or
+    insecure).
+
+    SecretName = "redisdb"
+
+    PublishTopicPrefix = 'edgex/events/device' #
+    /<device-profile-name>/<device-name>/<source-name> will be added to this
+    Publish Topic prefix
+      [MessageQueue.Optional]
+      # Default MQTT Specific options that need to be here to enable environment variable overrides of them
+      # Client Identifiers
+      ClientId = "device-snmp"
+      # Connection information
+      Qos = "0" # Quality of Sevice values are 0 (At most once), 1 (At least once) or 2 (Exactly once)
+      KeepAlive = "10" # Seconds (must be 2 or greater)
+      Retained = "false"
+      AutoReconnect = "true"
+      ConnectTimeout = "5" # Seconds
+      SkipCertVerify = "false" # Only used if Cert/Key file or Cert/Key PEMblock are specified
+
+    # Only used when EDGEX_SECURITY_SECRET_STORE=true which is now required for
+    secure consul
+
+    [SecretStore]
+
+    Type = 'vault'
+
+    Host = 'localhost'
+
+    Port = 8200
+
+    Path = 'device-snmp/'
+
+    Protocol = 'http'
+
+    RootCaCertPath = ''
+
+    ServerName = ''
+
+    TokenFile = '/tmp/edgex/secrets/device-snmp/secrets-token.json'
+      [SecretStore.Authentication]
+      AuthType = 'X-Vault-Token'
+
+    [Device]
+
+    DataTransform = true
+
+    MaxCmdOps = 128
+
+    MaxCmdValueLen = 256
+
+    ProfilesDir = './res'
+
+    DevicesDir = './res'
+
+    UpdateLastConnected = false
+
+    Labels = []
+
+    EnableAsyncReadings = true
+
+    AsyncBufferSize = 16
+
+    UseMessageBus = true
+      [Device.Discovery]
+      Enabled = false
+      Interval = '30s'
+  snmpInfo.txt: >+
+    ---------------------------------------------------------------------------------------
+
+    -- SNMP OID's TredNet POE/Non POE
+
+    -- Example of how the OID's would look as viewed in a MIB browser
+
+    ---------------------------------------------------------------------------------------
+
+    Name: rebRestart
+
+    Type: OBJECT-TYPE
+
+    OID: 1.3.6.1.4.1.28866.2.26.24.5.1
+
+    Full path:
+
+    iso(1).org(3).dod(6).internet(1).private(4).enterprises(1).trendnet(28866).products(2).trendnet_series(26).sysTools(24).sysReboot(5).rebRestart(1)
+
+    Module: TEG-082WS-MIB
+
+
+    Parent: sysReboot
+
+
+    Numerical syntax: Integer (32bit)
+
+    Base syntax: INTEGER
+
+    Composed syntax: INTEGER
+
+    Status: current
+
+    Max access: read-write
+
+
+    Value list:
+
+    1: normal(1)
+
+    2: reset(2)
+
+    3: resetwithoutip(3)
+
+
+    Default values:
+
+    1: normal(name)
+
+
+
+    Description:
+
+    the object is used to restart the system with the different type.
+
+
+
+    ---------------------------------------------------------------------------------------
+
+    Name: sysInfoUpTime
+
+    Type: OBJECT-TYPE
+
+    OID: 1.3.6.1.4.1.28866.2.26.16.1.1
+
+    Full path:
+
+    iso(1).org(3).dod(6).internet(1).private(4).enterprises(1).trendnet(28866).products(2).trendnet_series(26).sysSystem(16).sysSystemInfo(1).sysInfoUpTime(1)
+
+    Module: TEG-082WS-MIB
+
+
+
+    Parent: sysSystemInfo
+
+    Next sibling: sysInfoFirmwareVersion
+
+
+
+    Numerical syntax: timeticks
+
+    Base syntax: TimeTicks
+
+    Composed syntax: TimeTicks
+
+    Status: current
+
+    Max access: read-only
+
+
+
+    Description:
+
+    The time (in hundredths of a second) since the
+
+    network management portion of the system was last
+
+    re-initialized.
+
+
+
+    ---------------------------------------------------------------------------------------
+
+    Name: systemSwitchBaseMacAddress
+
+    Type: OBJECT-TYPE
+
+    OID: 1.3.6.1.4.1.28866.2.26.16.2.1
+
+    Full path:
+
+    iso(1).org(3).dod(6).internet(1).private(4).enterprises(1).trendnet(28866).products(2).trendnet_series(26).sysSystem(16).sysSystemCtrl(2).systemSwitchBaseMacAddress(1)
+
+    Module: TEG-082WS-MIB
+
+
+    Parent: sysSystemCtrl
+
+    Next sibling: systemWebAutoTimeoutInterval
+
+
+
+    Numerical syntax: Octets
+
+    Base syntax: OCTET STRING
+
+    Composed syntax: MacAddress
+
+    Status: current
+
+    Max access: read-only
+
+
+
+    Description:
+
+    Ethernet address (base address) of the Switch.
+
+    This base Mac Address, if modified, will take effect only when the
+
+    Switch is restarted.
+
+
+
+    ---------------------------------------------------------------------------------------
+
+    Name: sysInfoFirmwareVersion
+
+    Type: OBJECT-TYPE
+
+    OID: 1.3.6.1.4.1.28866.2.26.16.1.2
+
+    Full path:
+
+    iso(1).org(3).dod(6).internet(1).private(4).enterprises(1).trendnet(28866).products(2).trendnet_series(26).sysSystem(16).sysSystemInfo(1).sysInfoFirmwareVersion(2)
+
+    Module: TEG-082WS-MIB
+
+
+
+    Parent: sysSystemInfo
+
+    Previous sibling: sysInfoUpTime
+
+    Next sibling: sysInfoBootloaderVersion
+
+
+
+    Numerical syntax: Octets
+
+    Base syntax: OCTET STRING
+
+    Composed syntax: DisplayString
+
+    Status: current
+
+    Max access: read-only
+
+    Size list:
+      1: 1..15
+    Default values:
+      1: (char string)
+
+
+    Description:
+
+    Version number of the Firmware.
+
+
+    ---------------------------------------------------------------------------------------
+
+
+    Name: ipv4sysIpAddr
+
+    Type: OBJECT-TYPE
+
+    OID: 1.3.6.1.4.1.28866.2.26.16.3.2
+
+    Full path:
+
+    iso(1).org(3).dod(6).internet(1).private(4).enterprises(1).trendnet(28866).products(2).trendnet_series(26).sysSystem(16).sysIPv4SysSettings(3).ipv4sysIpAddr(2)
+
+    Module: TEG-082WS-MIB
+
+
+
+    Parent: sysIPv4SysSettings
+
+    Previous sibling: ipv4sysIpAddrCfgMode
+
+    Next sibling: ipv4SysIpSubnetMask
+
+
+
+    Numerical syntax: ipaddr
+
+    Base syntax: IpAddress
+
+    Composed syntax: IpAddress
+
+    Status: current
+
+    Max access: read-write
+
+
+
+    Description:
+
+    Default IP Address of the system.
+
+
+    This IP address, if modified, will take effect only when the
+
+    configuration is stored & restored.
+
+
+
+    --------------------------------------------------------------------------------------
+
+
+    Name: ipv4SysIpSubnetMask
+
+    Type: OBJECT-TYPE
+
+    OID:
+
+    1.3.6.1.4.1.28866.2.26.16.3.3
+
+    Full path:
+
+    iso(1).org(3).dod(6).internet(1).private(4).enterprises(1).trendnet(28866).products(2).trendnet_series(26).sysSystem(16).sysIPv4SysSettings(3).ipv4SysIpSubnetMask(3)
+
+    Module:
+
+    TEG-082WS-MIB
+
+
+
+    Parent:
+
+    sysIPv4SysSettings
+
+    Previous sibling:
+
+    ipv4sysIpAddr
+
+    Next sibling:
+
+    ipv4SysGateway
+
+
+
+    Numerical syntax:
+
+    ipaddr
+
+    Base syntax:
+
+    IpAddress
+
+    Composed syntax:
+
+    IpAddress
+
+    Status:
+
+    current
+
+    Max access:
+
+    read-write
+
+
+
+    Description:
+
+    IP subnet mask for the default IP address.
+
+
+    This subnet mask, if modified, will take effect only when the
+
+    configuration is stored & restored.
+
+    --------------------------------------------------------------------------------------
+
+
+    Name:
+
+    ipv4SysGateway
+
+    Type:
+
+    OBJECT-TYPE
+
+    OID:
+
+    1.3.6.1.4.1.28866.2.26.16.3.4
+
+    Full path:
+
+    iso(1).org(3).dod(6).internet(1).private(4).enterprises(1).trendnet(28866).products(2).trendnet_series(26).sysSystem(16).sysIPv4SysSettings(3).ipv4SysGateway(4)
+
+    Module:
+
+    TEG-082WS-MIB
+
+
+
+    Parent:
+
+    sysIPv4SysSettings
+
+    Previous sibling:
+
+    ipv4SysIpSubnetMask
+
+
+
+    Numerical syntax:
+
+    ipaddr
+
+    Base syntax:
+
+    IpAddress
+
+    Composed syntax:
+
+    IpAddress
+
+    Status:
+
+    current
+
+    Max access:
+
+    read-write
+
+
+
+    Description:
+
+    Gateway
+
+
+
+
+    ---------------------------------------------------------------------------------------
+
+    -- SNMP RMON OID's
+
+    ---------------------------------------------------------------------------------------
+
+
+    Name: rmonEnableStatus
+
+    Type: OBJECT-TYPE
+
+    OID: 1.3.6.1.4.1.28866.2.26.15.1.1
+
+    Full path:
+
+    iso(1).org(3).dod(6).internet(1).private(4).enterprises(1).trendnet(28866).products(2).trendnet_series(26).sysRMON(15).rmonGlobal(1).rmonEnableStatus(1)
+
+    Module: TEG-082WS-MIB
+
+
+    Parent: rmonGlobal
+
+
+    Numerical syntax: Integer (32bit)
+
+    Base syntax: INTEGER
+
+    Composed syntax: INTEGER
+
+    Status: current
+
+    Max access: read-write
+
+    Value list:
+
+    1: enabled(1)
+
+    2: disabled(2)
+
+
+    Description: This object defines the rmonenable flag for rmon
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-snmp-devices
+  namespace: edge-system
+  uid: d621b5ca-6a7c-4ad6-ad71-d8e612da4835
+  resourceVersion: '471841'
+  creationTimestamp: '2021-07-13T09:24:28Z'
+  managedFields:
+    - manager: kubectl-create
+      operation: Update
+      apiVersion: v1
+      time: '2021-07-13T09:24:28Z'
+      fieldsType: FieldsV1
+      fieldsV1:
+        f:data:
+          .: {}
+          f:device.snmp.trendnet.TPE082WS.toml: {}
+data:
+  device.snmp.trendnet.TPE082WS.toml: >
+    # Pre-define Devices
+
+    # NOTE: You will need to modify the Address to a DNS or named resource
+    potentially.
+
+    #       Port 161 is the default SNMP provider port.
+
+    [[DeviceList]]
+
+    Name = 'trendnet01'
+
+    ProfileName = 'trendnet'
+
+    Description = 'Switch SNMP service interface'
+
+    Labels = [ 'device-snmp-switch-example' ]
+      [DeviceList.Protocols]
+        [DeviceList.Protocols.TCP]
+        Address = '192.168.10.200'
+        Port = '161'
+      [[DeviceList.AutoEvents]]
+      Interval = '10s'
+      OnChange = true
+      SourceName = 'MacAddress'
+      [[DeviceList.AutoEvents]]
+      Interval = '15s'
+      OnChange = true
+      SourceName = 'Firmware'
+      [[DeviceList.AutoEvents]]
+      Interval = '5s'
+      OnChange = false
+      SourceName = 'Uptime'
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-snmp-profiles
+  namespace: edge-system
+data:
+  device.snmp.patlite.yaml: |
+    name: "patlite"
+    manufacturer: "Patlite Corp"
+    model: "NHL-FB2"
+    labels:
+      - "patlite"
+      - "signal tower"
+    description: "Patlite Signal Tower accessed via SNMP"
+    deviceResources:
+      -
+        name: RedLightControlState
+        description: "Red light state."
+        isHidden: true
+        attributes:
+          { oid: "1.3.6.1.4.1.20440.4.1.5.1.2.1.2.1", community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "5"
+          defaultValue: "1"
+      -
+        name: AmberLightControlState
+        description: "Amber light state."
+        isHidden: true
+        attributes:
+          { oid: "1.3.6.1.4.1.20440.4.1.5.1.2.1.2.2" , community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "5"
+          defaultValue: "1"
+      -
+        name: GreenLightControlState
+        description: "Green light state."
+        isHidden: true
+        attributes:
+          { oid: "1.3.6.1.4.1.20440.4.1.5.1.2.1.2.3" , community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "5"
+          defaultValue: "1"
+      -
+        name: BuzzerControlState
+        description: "Buzzer state."
+        isHidden: true
+        attributes:
+          { oid: "1.3.6.1.4.1.20440.4.1.5.1.2.1.2.6" , community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "5"
+          defaultValue: "1"
+      -
+        name: RedLightTimer
+        description: "Red light timer."
+        isHidden: true
+        attributes:
+          { oid: "1.3.6.1.4.1.20440.4.1.5.1.2.1.3.1" , community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "5"
+          defaultValue: "1"
+      -
+        name: AmberLightTimer
+        description: "Amber light timer."
+        isHidden: true
+        attributes:
+          { oid: "1.3.6.1.4.1.20440.4.1.5.1.2.1.3.2" , community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "5"
+          defaultValue: "1"
+      -
+        name: GreenLightTimer
+        description: "Green light timer."
+        isHidden: true
+        attributes:
+          { oid: "1.3.6.1.4.1.20440.4.1.5.1.2.1.3.3" , community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "5"
+          defaultValue: "1"
+      -
+        name: BuzzerTimer
+        description: "Green light timer."
+        isHidden: true
+        attributes:
+          { oid: "1.3.6.1.4.1.20440.4.1.5.1.2.1.3.6" , community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "5"
+          defaultValue: "1"
+      -
+        name: RedLightCurrentState
+        description: "Red light current state."
+        isHidden: true
+        attributes:
+          { oid: "1.3.6.1.4.1.20440.4.1.5.1.2.1.4.1" , community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "5"
+          defaultValue: "1"
+      -
+        name: AmberLightCurrentState
+        description: "Amber light current state."
+        isHidden: true
+        attributes:
+          { oid: "1.3.6.1.4.1.20440.4.1.5.1.2.1.4.2" , community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "5"
+          defaultValue: "1"
+      -
+        name: GreenLightCurrentState
+        description: "Green light current state."
+        isHidden: true
+        attributes:
+          { oid: "1.3.6.1.4.1.20440.4.1.5.1.2.1.4.3" , community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "5"
+          defaultValue: "1"
+      -
+        name: BuzzerCurrentState
+        description: "Buzzer current state."
+        isHidden: true
+        attributes:
+          { oid: "1.3.6.1.4.1.20440.4.1.5.1.2.1.4.6" , community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "5"
+          defaultValue: "1"
+
+    deviceCommands:
+      -
+        name: RedLight
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "RedLightCurrentState" }
+      -
+        name: SetRedLightState
+        readWrite: "W"
+        resourceOperations:
+          - { deviceResource: "RedLightControlState" }
+          - { deviceResource: "RedLightTimer" }
+      -
+        name: GreenLight
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "GreenLightCurrentState" }
+      -
+        name: SetGreenLightState
+        readWrite: "W"
+        resourceOperations:
+          - { deviceResource: "GreenLightControlState" }
+          - { deviceResource: "GreenLightTimer" }
+      -
+        name: AmberLight
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "AmberLightCurrentState" }
+      -
+        name: SetAmberLightState
+        readWrite: "W"
+        resourceOperations:
+          - { deviceResource: "AmberLightControlState" }
+          - { deviceResource: "AmberLightTimer" }
+      -
+        name: Buzzer
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "BuzzerCurrentState" }
+      -
+        name: SetBuzzerState
+        readWrite: "W"
+        resourceOperations:
+          - { deviceResource: "BuzzerControlState" }
+          - { deviceResource: "BuzzerTimer" }
+      -
+        name: AllLights
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "RedLightCurrentState" }
+          - { deviceResource: "GreenLightCurrentState" }
+          - { deviceResource: "AmberLightCurrentState" }
+          - { deviceResource: "BuzzerCurrentState" }
+  device.snmp.switch.dell.N1108P-ON.yaml: |
+    name: "dellswitch"
+    manufacturer: "Dell/EMC"
+    model: "N1108P-ON"
+    labels:
+      - "poe switch"
+      - "edge switch"
+      - "poe"
+    description: "Dell N-Series Powered Switch accessed via SNMP"
+    deviceResources:
+      -
+        # POE ONLY AVAILABLE ON PORTS 1-4
+        name: RebootCurrentStatePort1
+        description: "PowerAdminEnable Port 1"
+        attributes:
+          { oid: "1.3.6.1.2.1.105.1.1.1.3.1.1", community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "2"
+          defaultValue: "1"
+      -
+        name: RebootCurrentStatePort2
+        description: "PowerAdminEnable Port 2"
+        attributes:
+          { oid: "1.3.6.1.2.1.105.1.1.1.3.1.2", community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "2"
+          defaultValue: "1"
+      -
+        name: RebootCurrentStatePort3
+        description: "PowerAdminEnable Port 3"
+        attributes:
+          { oid: "1.3.6.1.2.1.105.1.1.1.3.1.3", community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "2"
+          defaultValue: "1"
+      -
+        name: RebootCurrentStatePort4
+        description: "PowerAdminEnable Port 4"
+        attributes:
+          { oid: "1.3.6.1.2.1.105.1.1.1.3.1.4", community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "2"
+          defaultValue: "1"
+      -
+        name: UpTimeCurrentState
+        description: "Switch uptime control state"
+        attributes:
+          { oid: "1.3.6.1.2.1.1.3.0", community: "private" }
+        properties:
+          valueType: "Uint64"
+          readWrite: "RW"
+          minimum: "0"
+          maximum: "18446744073709551615"
+          defaultValue: "0"
+      -
+        name: MacAddressCurrentState
+        description: "Switch Mac address"
+        attributes:
+          { oid: "1.3.6.1.2.1.17.1.1.0", community: "private" }
+        properties:
+          valueType: "String"
+          readWrite: "R"
+      -
+        name: FirmwareCurrentState
+        description: "Switch firmware version"
+        attributes:
+          { oid: "1.3.6.1.4.1.674.10895.3000.1.2.100.4.0", community: "private" }
+        properties:
+          valueType: "String"
+          readWrite: "R"
+      -
+        name: IPV4AddressCurrentState
+        description: "Switch IPV4 address"
+        attributes:
+          { oid: "1.3.6.1.4.1.674.10895.5000.2.6132.1.1.1.2.3.1.0", community: "private" }
+        properties:
+          valueType: "String"
+          readWrite: "R"
+      -
+        name: IPV4SubnetMaskCurrentState
+        description: "Switch IPV4 subnet mask"
+        attributes:
+          { oid: "1.3.6.1.4.1.674.10895.5000.2.6132.1.1.1.2.3.2.0", community: "private" }
+        properties:
+          valueType: "String"
+          readWrite: "R"
+      -
+        name: IPV4GatewayAddressCurrentState
+        description: "Switch IPV4 gateway address"
+        attributes:
+          { oid: "1.3.6.1.2.1.4.21.1.7.0.0.0.0", community: "private" }
+        properties:
+          valueType: "String"
+          readWrite: "R"
+
+    deviceCommands:
+      -
+        #POE POWER only available on PORTS 1-4
+        # 1 = "ON"  2 - "OFF"
+        name: PowerCyclePorts
+        readWrite: "W"
+        resourceOperations:
+          - { deviceResource: "RebootCurrentStatePort1" }
+          - { deviceResource: "RebootCurrentStatePort2" }
+          - { deviceResource: "RebootCurrentStatePort3" }
+          - { deviceResource: "RebootCurrentStatePort4" }
+      -
+        name: PowerPort1
+        readWrite: "W"
+        resourceOperations:
+          - { deviceResource: "RebootCurrentStatePort1" }
+      -
+        name: PowerPort2
+        readWrite: "W"
+        resourceOperations:
+          - { deviceResource: "RebootCurrentStatePort2" }
+      -
+        name: PowerPort3
+        readWrite: "W"
+        resourceOperations:
+          - { deviceResource: "RebootCurrentStatePort3" }
+      -
+        name: PowerPort4
+        readWrite: "W"
+        resourceOperations:
+          - { deviceResource: "RebootCurrentStatePort4" }
+      -
+        name: Uptime
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "UpTimeCurrentState" }
+      -
+        name: MacAddress
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "MacAddressCurrentState" }
+      -
+        name: Firmware
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "FirmwareCurrentState" }
+      -
+        name: IPV4Address
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "IPV4AddressCurrentState" }
+      -
+        name: IPV4SubnetMask
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "IPV4SubnetMaskCurrentState" }
+      -
+        name: IPV4GatewayAddress
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "IPV4GatewayAddressCurrentState" }
+  device.snmp.trendnet.TPE082WS.yaml: |
+    name: "trendnet"
+    manufacturer: "TrendNet corp"
+    model: "TPE-082WS"
+    labels:
+      - "trendnet"
+      - "edge switch"
+    description: "TrendNet Powered Switch accessed via SNMP"
+
+    deviceResources:
+      -
+        name: RebootCurrentState
+        description: "Switch reboot current state"
+        attributes:
+          { oid: "1.3.6.1.4.1.28866.2.37.24.5.1.0", community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "R"
+          minimum: "1"
+          maximum: "3"
+          defaultValue: "1"
+      -
+        name: RebootControlState
+        description: "Switch reboot control state"
+        attributes:
+          { oid: "1.3.6.1.4.1.28866.2.37.24.5.1.0", community: "private", size: "4" }
+        properties:
+          valueType: "Int32"
+          readWrite: "RW"
+          minimum: "1"
+          maximum: "3"
+          defaultValue: "1"
+      -
+        name: UpTimeCurrentState
+        description: "Switch uptime current state"
+        attributes:
+          { oid: "1.3.6.1.4.1.28866.2.26.16.1.1.0", community: "private"  }
+        properties:
+          valueType: "Uint64"
+          readWrite: "R"
+          minimum: "0"
+          maximum: "18446744073709551615"
+          defaultValue: "0"
+      -
+        name: MacAddressCurrentState
+        description: "Switch Mac address"
+        attributes:
+          { oid: "1.3.6.1.4.1.28866.2.26.16.2.1.0", community: "private"  }
+        properties:
+          valueType: "String"
+          readWrite: "R"
+      -
+        name: FirmwareCurrentState
+        description: "Switch firmware version"
+        attributes:
+          { oid: "1.3.6.1.4.1.28866.2.26.16.1.2.0", community: "private"  }
+        properties:
+          valueType: "String"
+          readWrite: "R"
+      -
+        name: IPV4AddressCurrentState
+        description: "Switch IPV4 address"
+        attributes:
+          { oid: "1.3.6.1.4.1.28866.2.26.16.3.2.0", community: "private"  }
+        properties:
+          valueType: "String"
+          readWrite: "R"
+      -
+        name: IPV4SubnetMaskCurrentState
+        description: "Switch IPV4 subnet mask"
+        attributes:
+          { oid: "1.3.6.1.4.1.28866.2.26.16.3.3.0", community: "private"  }
+        properties:
+          valueType: "String"
+          readWrite: "R"
+      -
+        name: IPV4GatewayAddressCurrentState
+        description: "Switch IPV4 gateway address"
+        attributes:
+          { oid: "1.3.6.1.4.1.28866.2.26.16.3.4.0", community: "private"  }
+        properties:
+          valueType: "String"
+          readWrite: "R"
+
+    deviceCommands:
+      -
+        name: Reboot
+        readWrite: "RW"
+        resourceOperations:
+          - { deviceResource: "RebootCurrentState" }
+      -
+        name: Uptime
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "UpTimeCurrentState" }
+      -
+        name: MacAddress
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "MacAddressCurrentState" }
+      -
+        name: Firmware
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "FirmwareCurrentState" }
+      -
+        name: IPV4Address
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "IPV4AddressCurrentState" }
+      -
+        name: IPV4SubnetMask
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "IPV4SubnetMaskCurrentState" }
+      -
+        name: IPV4GatewayAddress
+        readWrite: "R"
+        resourceOperations:
+          - { deviceResource: "IPV4GatewayAddressCurrentState" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-device-snmp
+  namespace: edge-system
+spec:
+  selector:
+    app: edge-device-snmp
+  type: NodePort
+  ports:
+    - port: 59993
+      name: port-59993
+      nodePort: 59993
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-device-snmp
+  namespace: edge-system
+  labels:
+    app: edge-device-snmp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-device-snmp
+  template:
+    metadata:
+      name: edge-device-snmp
+      labels:
+        app: edge-device-snmp
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: edge-device-snmp-conf
+        - name: devices
+          configMap:
+            name: edge-device-snmp-devices
+        - name: profiles
+          configMap:
+            name: edge-device-snmp-profiles    
+      containers:
+        - name: edge-device-snmp
+          image: edgexfoundry/device-snmp:2.0.0
+          command:
+            - /device-snmp
+            - '--confdir'
+            - /res
+          env:
+            - name: EDGEX_SECURITY_SECRET_STORE
+              value: 'false'
+          ports:
+            - containerPort: 59993
+          volumeMounts:
+            - name: config
+              mountPath: /res
+            - name: devices
+              mountPath: /res/devices
+            - name: profiles
+              mountPath: /res/profiles  
+          readinessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59993
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59993
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-virtual-conf
+  namespace: edge-system
+data:
+  configuration.toml: >
+    [Writable]
+
+    LogLevel = 'INFO'
+      # InsecureSecrets are required for when Redis is used for message bus
+      [Writable.InsecureSecrets]
+        [Writable.InsecureSecrets.DB]
+        path = "redisdb"
+          [Writable.InsecureSecrets.DB.Secrets]
+          username = ""
+          password = ""
+
+    [Service]
+
+    HealthCheckInterval = '10s'
+
+    Host = 'edge-device-virtual'
+
+    ServerBindAddr = '0.0.0.0'  # blank value defaults to Service.Host value
+
+    Port = 59900
+
+    StartupMsg = 'device virtual started'
+
+    # MaxRequestSize limit the request body size in byte of put command
+
+    MaxRequestSize = 0 # value 0 unlimit the request size.
+
+    RequestTimeout = '5s'
+
+
+    [Registry]
+
+    Host = 'localhost'
+
+    Port = 8500
+
+    Type = 'consul'
+
+
+    [Clients]
+      [Clients.core-data]
+      Protocol = 'http'
+      Host = 'edge-core-data'
+      Port = 59880
+
+      [Clients.core-metadata]
+      Protocol = 'http'
+      Host = 'edge-core-metadata'
+      Port = 59881
+
+    [MessageQueue]
+
+    Protocol = 'redis'
+
+    Host = 'edge-redis-master-0.edge-redis-headless'
+
+    Port = 6379
+
+    Type = 'redis'
+
+    AuthMode = 'usernamepassword'  # required for redis messagebus (secure or
+    insecure).
+
+    SecretName = "redisdb"
+
+    PublishTopicPrefix = 'edgex/events/device' #
+    /<device-profile-name>/<device-name>/<source-name> will be added to this
+    Publish Topic prefix
+      [MessageQueue.Optional]
+      # Default MQTT Specific options that need to be here to enable environment variable overrides of them
+      # Client Identifiers
+      ClientId = "device-virtual"
+      # Connection information
+      Qos = "0" # Quality of Sevice values are 0 (At most once), 1 (At least once) or 2 (Exactly once)
+      KeepAlive = "10" # Seconds (must be 2 or greater)
+      Retained = "false"
+      AutoReconnect = "true"
+      ConnectTimeout = "5" # Seconds
+      SkipCertVerify = "false" # Only used if Cert/Key file or Cert/Key PEMblock are specified
+
+    # Only used when EDGEX_SECURITY_SECRET_STORE=true which is now required for
+    secure Consul
+
+    [SecretStore]
+
+    Type = 'vault'
+
+    Host = 'localhost'
+
+    Port = 8200
+
+    Path = 'device-virtual/'
+
+    Protocol = 'http'
+
+    RootCaCertPath = ''
+
+    ServerName = ''
+
+    TokenFile = '/tmp/edgex/secrets/device-virtual/secrets-token.json'
+      [SecretStore.Authentication]
+      AuthType = 'X-Vault-Token'
+
+    [Device]
+
+    DataTransform = true
+
+    MaxCmdOps = 128
+
+    MaxCmdValueLen = 256
+
+    ProfilesDir = './res/profiles'
+
+    DevicesDir = './res/devices'
+
+    UpdateLastConnected = false
+
+    EnableAsyncReadings = true
+
+    AsyncBufferSize = 16
+
+    Labels = []
+
+    UseMessageBus = true
+      [Device.Discovery]
+      Enabled = false
+      Interval = '30s'
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-virtual-devices
+  namespace: edge-system
+data:
+  devices.toml: |
+    # Pre-define Devices
+    [[DeviceList]]
+      Name = 'Random-Boolean-Device'
+      ProfileName = 'Random-Boolean-Device'
+      Description = 'Example of Device Virtual'
+      Labels = [ 'device-virtual-example' ]
+      [DeviceList.Protocols]
+        [DeviceList.Protocols.other]
+          Address = 'device-virtual-bool-01'
+          Port = '300'
+      [[DeviceList.AutoEvents]]
+        Interval = '10s'
+        OnChange = false
+        SourceName = 'Bool'
+    [[DeviceList]]
+      Name = 'Random-Integer-Device'
+      ProfileName = 'Random-Integer-Device'
+      Description = 'Example of Device Virtual'
+      Labels = [ 'device-virtual-example' ]
+      [DeviceList.Protocols]
+        [DeviceList.Protocols.other]
+          Address = 'device-virtual-int-01'
+          Protocol = '300'
+      [[DeviceList.AutoEvents]]
+        Interval = '15s'
+        OnChange = false
+        SourceName = 'Int8'
+      [[DeviceList.AutoEvents]]
+        Interval = '15s'
+        OnChange = false
+        SourceName = 'Int16'
+      [[DeviceList.AutoEvents]]
+        Interval = '15s'
+        OnChange = false
+        SourceName = 'Int32'
+      [[DeviceList.AutoEvents]]
+        Interval = '15s'
+        OnChange = false
+        SourceName = 'Int64'
+    [[DeviceList]]
+      Name = 'Random-UnsignedInteger-Device'
+      ProfileName = 'Random-UnsignedInteger-Device'
+      Description = 'Example of Device Virtual'
+      Labels = [ 'device-virtual-example' ]
+      [DeviceList.Protocols]
+        [DeviceList.Protocols.other]
+          Address = 'device-virtual-uint-01'
+          Protocol = '300'
+      [[DeviceList.AutoEvents]]
+        Interval = '20s'
+        OnChange = false
+        SourceName = 'Uint8'
+      [[DeviceList.AutoEvents]]
+        Interval = '20s'
+        OnChange = false
+        SourceName = 'Uint16'
+      [[DeviceList.AutoEvents]]
+        Interval = '20s'
+        OnChange = false
+        SourceName = 'Uint32'
+      [[DeviceList.AutoEvents]]
+        Interval = '20s'
+        OnChange = false
+        SourceName = 'Uint64'
+    [[DeviceList]]
+      Name = 'Random-Float-Device'
+      ProfileName = 'Random-Float-Device'
+      Description = 'Example of Device Virtual'
+      Labels = [ 'device-virtual-example' ]
+      [DeviceList.Protocols]
+        [DeviceList.Protocols.other]
+          Address = 'device-virtual-float-01'
+          Protocol = '300'
+      [[DeviceList.AutoEvents]]
+        Interval = '30s'
+        OnChange = false
+        SourceName = 'Float32'
+      [[DeviceList.AutoEvents]]
+        Interval = '30s'
+        OnChange = false
+        SourceName = 'Float64'
+    [[DeviceList]]
+      Name = 'Random-Binary-Device'
+      ProfileName = 'Random-Binary-Device'
+      Description = 'Example of Device Virtual'
+      Labels = [ 'device-virtual-example' ]
+      [DeviceList.Protocols]
+        [DeviceList.Protocols.other]
+          Address = 'device-virtual-binary-01'
+          Port = '300'
+    #  [[DeviceList.AutoEvents]]
+    #    Interval = '30s'
+    #    OnChange = false
+    #    SourceName = 'Binary'
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-virtual-profiles
+  namespace: edge-system
+data:
+  device.virtual.binary.yaml: |-
+    name: "Random-Binary-Device"
+    manufacturer: "IOTech"
+    model: "Device-Virtual-01"
+    labels:
+      - "device-virtual-example"
+    description: "Example of Device-Virtual"
+
+    deviceResources:
+      -
+        name: "Binary"
+        isHidden: false
+        description: "Generate random binary value"
+        properties:
+          valueType: "Binary"
+          readWrite: "R"
+          mediaType: "random"
+  device.virtual.bool.yaml: |-
+    name: "Random-Boolean-Device"
+    manufacturer: "IOTech"
+    model: "Device-Virtual-01"
+    labels:
+    - "device-virtual-example"
+    description: "Example of Device-Virtual"
+
+    deviceResources:
+    -
+      name: "EnableRandomization_Bool"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "Bool"
+      isHidden: false
+      description: "Generate random boolean value"
+      properties:
+        valueType: "Bool"
+        readWrite: "RW"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_BoolArray"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "BoolArray"
+      isHidden: false
+      description: "Generate random boolean array value"
+      properties:
+        valueType: "BoolArray"
+        readWrite: "RW"
+        defaultValue: "[true]"
+
+    deviceCommands:
+    -
+      name: "WriteBoolValue"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Bool" }
+        - { deviceResource: "EnableRandomization_Bool", defaultValue: "false" }
+    -
+      name: "WriteBoolArrayValue"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "BoolArray" }
+        - { deviceResource: "EnableRandomization_BoolArray", defaultValue: "false" }
+  device.virtual.float.yaml: |
+    name: "Random-Float-Device"
+    manufacturer: "IOTech"
+    model: "Device-Virtual-01"
+    labels:
+    - "device-virtual-example"
+    description: "Example of Device-Virtual"
+
+    deviceResources:
+    -
+      name: "EnableRandomization_Float32"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_Float64"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "Float32"
+      isHidden: false
+      description: "Generate random float32 value"
+      properties:
+        valueType: "Float32"
+        readWrite: "RW"
+        defaultValue: "0"
+    -
+      name: "Float64"
+      isHidden: false
+      description: "Generate random float64 value"
+      properties:
+        valueType: "Float64"
+        readWrite: "RW"
+        defaultValue: "0"
+    -
+      name: "EnableRandomization_Float32Array"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_Float64Array"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "Float32Array"
+      isHidden: false
+      description: "Generate random float32 array value"
+      properties:
+        valueType: "Float32Array"
+        readWrite: "RW"
+        defaultValue: "[0]"
+    -
+      name: "Float64Array"
+      isHidden: false
+      description: "Generate random float64 array value"
+      properties:
+        valueType: "Float64Array"
+        readWrite: "RW"
+        defaultValue: "[0]"
+
+    deviceCommands:
+    -
+      name: "WriteFloat32Value"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Float32" }
+        - { deviceResource: "EnableRandomization_Float32", defaultValue: "false" }
+    -
+      name: "WriteFloat64Value"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Float64" }
+        - { deviceResource: "EnableRandomization_Float64", defaultValue: "false" }
+    -
+      name: "WriteFloat32ArrayValue"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Float32Array" }
+        - { deviceResource: "EnableRandomization_Float32Array", defaultValue: "false" }
+    -
+      name: "WriteFloat64ArrayValue"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Float64Array" }
+        - { deviceResource: "EnableRandomization_Float64Array", defaultValue: "false" }
+  device.virtual.int.yaml: |
+    name: "Random-Integer-Device"
+    manufacturer: "IOTech"
+    model: "Device-Virtual-01"
+    labels:
+    - "device-virtual-example"
+    description: "Example of Device-Virtual"
+
+    deviceResources:
+    -
+      name: "EnableRandomization_Int8"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_Int16"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_Int32"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_Int64"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "Int8"
+      isHidden: false
+      description: "Generate random int8 value"
+      properties:
+        valueType: "Int8"
+        readWrite: "RW"
+        defaultValue: "0"
+    -
+      name: "Int16"
+      isHidden: false
+      description: "Generate random int16 value"
+      properties:
+        valueType: "Int16"
+        readWrite: "RW"
+        defaultValue: "0"
+    -
+      name: "Int32"
+      isHidden: false
+      description: "Generate random int32 value"
+      properties:
+        valueType: "Int32"
+        readWrite: "RW"
+        defaultValue: "0"
+    -
+      name: "Int64"
+      isHidden: false
+      description: "Generate random int64 value"
+      properties:
+        valueType: "Int64"
+        readWrite: "RW"
+        defaultValue: "0"
+    -
+      name: "EnableRandomization_Int8Array"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_Int16Array"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_Int32Array"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_Int64Array"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "Int8Array"
+      isHidden: false
+      description: "Generate random int8 array value"
+      properties:
+        valueType: "Int8Array"
+        readWrite: "RW"
+        defaultValue: "[0]"
+    -
+      name: "Int16Array"
+      isHidden: false
+      description: "Generate random int16 array value"
+      properties:
+        valueType: "Int16Array"
+        readWrite: "RW"
+        defaultValue: "[0]"
+    -
+      name: "Int32Array"
+      isHidden: false
+      description: "Generate random int32 array value"
+      properties:
+        valueType: "Int32Array"
+        readWrite: "RW"
+        defaultValue: "[0]"
+    -
+      name: "Int64Array"
+      isHidden: false
+      description: "Generate random int64 array value"
+      properties:
+        valueType: "Int64Array"
+        readWrite: "RW"
+        defaultValue: "[0]"
+
+    deviceCommands:
+    -
+      name: "WriteInt8Value"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+      - { deviceResource: "Int8" }
+      - { deviceResource: "EnableRandomization_Int8", defaultValue: "false" }
+    -
+      name: "WriteInt16Value"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Int16" }
+        - { deviceResource: "EnableRandomization_Int16", defaultValue: "false" }
+    -
+      name: "WriteInt32Value"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Int32" }
+        - { deviceResource: "EnableRandomization_Int32", defaultValue: "false" }
+    -
+      name: "WriteInt64Value"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Int64" }
+        - { deviceResource: "EnableRandomization_Int64", defaultValue: "false" }
+    -
+      name: "WriteInt8ArrayValue"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Int8Array" }
+        - { deviceResource: "EnableRandomization_Int8Array", defaultValue: "false" }
+    -
+      name: "WriteInt16ArrayValue"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Int16Array" }
+        - { deviceResource: "EnableRandomization_Int16Array", defaultValue: "false" }
+    -
+      name: "WriteInt32ArrayValue"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Int32Array" }
+        - { deviceResource: "EnableRandomization_Int32Array", defaultValue: "false" }
+    -
+      name: "WriteInt64ArrayValue"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Int64Array" }
+        - { deviceResource: "EnableRandomization_Int64Array", defaultValue: "false" }
+  device.virtual.uint.yaml: |
+    name: "Random-UnsignedInteger-Device"
+    manufacturer: "IOTech"
+    model: "Device-Virtual-01"
+    labels:
+    - "device-virtual-example"
+    description: "Example of Device-Virtual"
+
+    deviceResources:
+    -
+      name: "EnableRandomization_Uint8"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_Uint16"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_Uint32"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_Uint64"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "Uint8"
+      isHidden: false
+      description: "Generate random uint8 value"
+      properties:
+        valueType: "Uint8"
+        readWrite: "RW"
+        defaultValue: "0"
+    -
+      name: "Uint16"
+      isHidden: false
+      description: "Generate random uint16 value"
+      properties:
+        valueType: "Uint16"
+        readWrite: "RW"
+        defaultValue: "0"
+    -
+      name: "Uint32"
+      isHidden: false
+      description: "Generate random uint32 value"
+      properties:
+        valueType: "Uint32"
+        readWrite: "RW"
+        defaultValue: "0"
+    -
+      name: "Uint64"
+      isHidden: false
+      description: "Generate random uint64 value"
+      properties:
+        valueType: "Uint64"
+        readWrite: "RW"
+        defaultValue: "0"
+    -
+      name: "EnableRandomization_Uint8Array"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_Uint16Array"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_Uint32Array"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "EnableRandomization_Uint64Array"
+      isHidden: true
+      description: "used to decide whether to re-generate a random value"
+      properties:
+        valueType: "Bool"
+        readWrite: "W"
+        defaultValue: "true"
+    -
+      name: "Uint8Array"
+      isHidden: false
+      description: "Generate random uint8 array value"
+      properties:
+        valueType: "Uint8Array"
+        readWrite: "RW"
+        defaultValue: "[0]"
+    -
+      name: "Uint16Array"
+      isHidden: false
+      description: "Generate random uint16 array value"
+      properties:
+        valueType: "Uint16Array"
+        readWrite: "RW"
+        defaultValue: "[0]"
+    -
+      name: "Uint32Array"
+      isHidden: false
+      description: "Generate random uint32 array value"
+      properties:
+        valueType: "Uint32Array"
+        readWrite: "RW"
+        defaultValue: "[0]"
+    -
+      name: "Uint64Array"
+      isHidden: false
+      description: "Generate random uint64 array value"
+      properties:
+        valueType: "Uint64Array"
+        readWrite: "RW"
+        defaultValue: "[0]"
+
+    deviceCommands:
+    -
+      name: "WriteUint8Value"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+      - { deviceResource: "Uint8" }
+      - { deviceResource: "EnableRandomization_Uint8", defaultValue: "false" }
+    -
+      name: "WriteUint16Value"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Uint16" }
+        - { deviceResource: "EnableRandomization_Uint16", defaultValue: "false" }
+    -
+      name: "WriteUint32Value"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Uint32" }
+        - { deviceResource: "EnableRandomization_Uint32", defaultValue: "false" }
+    -
+      name: "WriteUint64Value"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Uint64" }
+        - { deviceResource: "EnableRandomization_Uint64", defaultValue: "false" }
+    -
+      name: "WriteUint8ArrayValue"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Uint8Array" }
+        - { deviceResource: "EnableRandomization_Uint8Array", defaultValue: "false" }
+    -
+      name: "WriteUint16ArrayValue"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Uint16Array" }
+        - { deviceResource: "EnableRandomization_Uint16Array", defaultValue: "false" }
+    -
+      name: "WriteUint32ArrayValue"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Uint32Array" }
+        - { deviceResource: "EnableRandomization_Uint32Array", defaultValue: "false" }
+    -
+      name: "WriteUint64ArrayValue"
+      readWrite: "W"
+      isHidden: false
+      resourceOperations:
+        - { deviceResource: "Uint64Array" }
+        - { deviceResource: "EnableRandomization_Uint64Array", defaultValue: "false" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-device-virtual
+  namespace: edge-system
+spec:
+  type: NodePort
+  selector:
+    app: edge-device-virtual
+  ports:
+    - port: 59900
+      nodePort: 59900
+      name: port-59900
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: edge-device-virtual
+  namespace: edge-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-device-virtual
+  template:
+    metadata:
+      name: edge-device-virtual
+      creationTimestamp: null
+      labels:
+        app: edge-device-virtual
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: edge-device-virtual-conf
+        - name: devices
+          configMap:
+            name: edge-device-virtual-devices
+        - name: profiles
+          configMap:
+            name: edge-device-virtual-profiles
+      containers:
+        - name: edge-device-virtual
+          image: edgexfoundry/device-virtual:2.0.0
+          command:
+            - /device-virtual
+            - '--confdir'
+            - /res
+          ports:
+            - containerPort: 59900
+              protocol: TCP
+          env:
+            - name: EDGEX_SECURITY_SECRET_STORE
+              value: 'false'
+          resources: {}
+          volumeMounts:
+            - name: config
+              mountPath: /res
+            - name: devices
+              mountPath: /res/devices
+            - name: profiles
+              mountPath: /res/profiles
+          livenessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59900
+              scheme: HTTP
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59900
+              scheme: HTTP
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+       
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-camera-conf
+  namespace: edge-system
+data:
+  configuration.toml: >
+    [Writable]
+
+    LogLevel = 'DEBUG'
+      # Example InsecureSecrets configuration that simulates SecretStore for when EDGEX_SECURITY_SECRET_STORE=false
+      # InsecureSecrets are required for when Redis is used for message bus
+      [Writable.InsecureSecrets]
+        [Writable.InsecureSecrets.DB]
+        path = "redisdb"
+          [Writable.InsecureSecrets.DB.Secrets]
+        [Writable.InsecureSecrets.Camera001]
+        path = "credentials001"
+          [Writable.InsecureSecrets.Camera001.Secrets]
+          username = ""
+          password = ""
+        # If having more than one camera, uncomment the following config settings
+        # [Writable.InsecureSecrets.Camera002]
+        # path = "credentials002"
+        #   [Writable.InsecureSecrets.Camera002.Secrets]
+        #   username = ""
+        #   password = ""
+
+    [Service]
+
+    HealthCheckInterval = '10s'
+
+    Host = 'edge-device-camera'
+
+    Port = 59985
+
+    ServerBindAddr = '0.0.0.0'  # blank value defaults to Service.Host value
+
+    StartupMsg = 'Camera device service started'
+
+    # MaxRequestSize limit the request body size in byte of put command
+
+    MaxRequestSize = 0 # value 0 unlimit the request size.
+
+    RequestTimeout = '5s'
+
+
+    # Only used when EDGEX_SECURITY_SECRET_STORE=true which is now required for
+    secure consul
+
+    [SecretStore]
+
+    Type = 'vault'
+
+    Host = 'localhost'
+
+    Port = 8200
+
+    Path = 'device-camera/'
+
+    Protocol = 'http'
+
+    RootCaCertPath = ''
+
+    ServerName = ''
+
+    TokenFile = '/tmp/edgex/secrets/device-camera/secrets-token.json'
+      [SecretStore.Authentication]
+      AuthType = 'X-Vault-Token'
+
+    [Registry]
+
+    Type = 'consul'
+
+    Host = 'localhost'
+
+    Port = 8500
+
+
+    [Clients]
+      [Clients.core-data]
+      Protocol = 'http'
+      Host = 'edge-core-data'
+      Port = 59880
+
+      [Clients.core-metadata]
+      Protocol = 'http'
+      Host = 'edge-core-metadata'
+      Port = 59881
+
+    [MessageQueue]
+
+    Protocol = 'redis'
+
+    Host = 'edge-redis-master-0.edge-redis-headless'
+
+    Port = 6379
+
+    Type = 'redis'
+
+    AuthMode = 'usernamepassword'  # required for redis messagebus (secure or
+    insecure).
+
+    SecretName = "redisdb"
+
+    PublishTopicPrefix = 'edgex/events/device' #
+    /<device-profile-name>/<device-name>/<source-name> will be added to this
+    Publish Topic prefix
+      [MessageQueue.Optional]
+      # Default MQTT Specific options that need to be here to enable environment variable overrides of them
+      # Client Identifiers
+      ClientId = "device-camera"
+      # Connection information
+      Qos = "0" # Quality of Sevice values are 0 (At most once), 1 (At least once) or 2 (Exactly once)
+      KeepAlive = "10" # Seconds (must be 2 or greater)
+      Retained = "false"
+      AutoReconnect = "true"
+      ConnectTimeout = "5" # Seconds
+      SkipCertVerify = "false" # Only used if Cert/Key file or Cert/Key PEMblock are specified
+
+    [Device]
+
+    DataTransform = true
+
+    MaxCmdOps = 128
+
+    MaxCmdValueLen = 256
+
+    ProfilesDir = './res/profiles'
+
+    DevicesDir = './res/devices'
+
+    UpdateLastConnected = false
+
+    EnableAsyncReadings = true
+
+    AsyncBufferSize = 16
+
+    Labels = []
+
+    UseMessageBus = true
+      [Device.Discovery]
+      Enabled = false
+      Interval = '30s'
+
+    # Driver configs
+
+    [Driver]
+
+    CredentialsRetryTime = '120' # Seconds
+
+    CredentialsRetryWait = '1' # Seconds
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-camera-devices
+  namespace: edge-system
+data:
+  camera.toml: |
+    # Pre-defined Devices
+    [[DeviceList]]
+    Name = 'Camera001'
+    ProfileName = 'camera-bosch'
+    Description = 'My test Bosch camera'
+    Location = 'foo'
+      [DeviceList.Protocols]
+        [DeviceList.Protocols.HTTP]
+        Address = '192.168.2.105'
+        # Assign AuthMethod to 'digest' | 'usernamepassword' | 'none'
+        # AuthMethod specifies the authentication method used when
+        # requesting still images from the URL returned by the ONVIF
+        # "GetSnapshotURI" command.  All ONVIF requests will be
+        # carried out using digest auth.
+        AuthMethod = 'usernamepassword'
+        CredentialsPath = 'credentials001'
+    # If having more than one camera, uncomment the following config settings
+    #[[DeviceList]]
+    #Name = 'Camera002'
+    #ProfileName = 'camera-axis'
+    #Description = 'My test Axis camera'
+    #Location = 'bar'
+    #  [DeviceList.Protocols]
+    #    [DeviceList.Protocols.HTTP]
+    #    Address = '192.168.2.163'
+         # Assign AuthMethod to 'digest | ''usernamepassword' | 'none'
+         # AuthMethod specifies the authentication method used when
+         # requesting still images from the URL returned by the ONVIF
+         # "GetSnapshotURI" command.  All ONVIF requests will be
+         # carried out using digest auth.
+         # AuthMethod = 'usernamepassword'
+         # CredentialsPath = 'credentials002'
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-device-camera-profiles
+  namespace: edge-system
+data:
+  camera-axis.yaml: |
+    name: "camera-axis"
+    manufacturer:  "Axis"
+    model: "M3104-L"
+    labels:
+      - "camera-onvif"
+      - "poe camera"
+      - "axis"
+    description: "EdgeX device profile for AXIS M3104-L Network Camera."
+
+    deviceResources:
+      - name: "OnvifDeviceInformation"
+        description: "results of ONVIF GetDeviceInformation call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifProfileInformation"
+        description: "results of ONVIF GetProfiles call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "MotionDetected"
+        description: "camera device detected motion"
+        attributes:
+          { alarm_code: "M0" }
+        properties:
+          valueType: "Bool"
+          readWrite: "R"
+      - name: "TamperDetected"
+        description: "camera device detected tampering"
+        attributes:
+          { alarm_code: "T0" }
+        properties:
+          valueType: "Bool"
+          readWrite: "R"
+  camera-bosch.yaml: |
+    name: "camera-bosch"
+    manufacturer:  "Bosch"
+    model: "IP Starlight 7000HD"
+    labels:
+      - "camera-onvif"
+      - "poe camera"
+      - "bosch"
+    description: "EdgeX device profile for Bosch IP Starlight 7000HD camera."
+
+    deviceResources:
+      - name: "OnvifDeviceInformation"
+        description: "results of ONVIF GetDeviceInformation call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifProfileInformation"
+        description: "results of ONVIF GetProfiles call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifHostname"
+        description: "results of ONVIF GetHostname call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifDateTime"
+        description: "results of ONVIF GetSystemDateAndTime call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifDns"
+        description: "results of ONVIF GetDNS call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifNetworkInterfaces"
+        description: "results of ONVIF GetNetworkInterfaces call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifNetworkProtocols"
+        description: "results of ONVIF GetNetworkProtocols call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifNetworkDefaultGateway"
+        description: "results of ONVIF GetNetworkDefaultGateway call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifNtp"
+        description: "results of ONVIF GetNTP call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifUsers"
+        description: "results of ONVIF GetUsers call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifSnapshot"
+        description: "snapshot from first ONVIF MediaProfile"
+        properties:
+          valueType: "Binary"
+          readWrite: "R"
+          mediaType: "image/jpeg"
+      - name: "MotionDetected"
+        description: "camera device detected motion"
+        attributes:
+          { alarm_type: "16" }
+        properties:
+          valueType: "Bool"
+          readWrite: "R"
+      - name: "TamperDetected"
+        description: "camera device detected tampering"
+        attributes:
+          { alarm_type: "37" }
+        properties:
+          valueType: "Bool"
+          readWrite: "R"
+      - name: "occupancy"
+        description: "number of people in frame"
+        attributes:
+          { counter_name: "occupancy" }
+        properties:
+          valueType: "Uint32"
+          readWrite: "R"
+      - name: "counter"
+        description: "number of people crossing line"
+        attributes:
+          { counter_name: "counter" }
+        properties:
+          valueType: "Uint32"
+          readWrite: "R"
+      - name: "OnvifUser"
+        description: "ONVIF user in escaped JSON format"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+      - name: "OnvifReboot"
+        description: "should reboot ONVIF camera"
+        properties:
+          valueType: "Bool"
+          readWrite: "RW"
+      - name: "OnvifStreamURI"
+        description: "ONVIF RTSP URI"
+        properties:
+          valueType: "String"
+          readWrite: "R"
+      - name: "OnvifHostnameFromDHCP"
+        description: "should set Hostname from DHCP"
+        properties:
+          valueType: "Bool"
+          readWrite: "RW"
+  camera.yaml: |
+    name: "camera"
+    manufacturer:  "Generic"
+    model: "Generic ONVIF"
+    labels:
+      - "onvif"
+      - "poe camera"
+    description: "EdgeX device profile for ONVIF-compliant IP camera."
+
+    deviceResources:
+      - name: "OnvifDeviceInformation"
+        description: "results of ONVIF GetDeviceInformation call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifProfileInformation"
+        description: "results of ONVIF GetProfiles call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifHostname"
+        description: "results of ONVIF GetHostname call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifDateTime"
+        description: "results of ONVIF GetSystemDateAndTime call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifDns"
+        description: "results of ONVIF GetDNS call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifNetworkInterfaces"
+        description: "results of ONVIF GetNetworkInterfaces call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifNetworkProtocols"
+        description: "results of ONVIF GetNetworkProtocols call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifNetworkDefaultGateway"
+        description: "results of ONVIF GetNetworkDefaultGateway call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifNtp"
+        description: "results of ONVIF GetNTP call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifUsers"
+        description: "results of ONVIF GetUsers call"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+          defaultValue: "key:value,key:value"
+      - name: "OnvifSnapshot"
+        description: "snapshot from first ONVIF MediaProfile"
+        properties:
+          valueType: "Binary"
+          readWrite: "R"
+          mediaType: "image/jpeg"
+      - name: "OnvifUser"
+        description: "ONVIF user in escaped JSON format"
+        properties:
+          valueType: "String"
+          readWrite: "RW"
+      - name: "OnvifReboot"
+        description: "should reboot ONVIF camera"
+        properties:
+          valueType: "Bool"
+          readWrite: "RW"
+      - name: "OnvifStreamURI"
+        description: "ONVIF RTSP URI"
+        properties:
+          valueType: "String"
+          readWrite: "R"
+      - name: "OnvifHostnameFromDHCP"
+        description: "should set Hostname from DHCP"
+        properties:
+          valueType: "Bool"
+          readWrite: "RW"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-device-camera
+spec:
+  selector:
+    app: edge-device-camera
+  type: NodePort
+  ports:
+    - port: 59985
+      name: port-59985
+      nodePort: 59985
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-device-camera
+  labels:
+    app: edge-device-camera
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-device-camera
+  template:
+    metadata:
+      name: edge-device-camera
+      labels:
+        app: edge-device-camera
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: edge-device-camera-conf
+        - name: devices
+          configMap:
+            name: edge-device-camera-devices
+        - name: profiles
+          configMap:
+            name: edge-device-camera-profiles    
+      containers:
+        - name: edge-device-camera
+          image: edgexfoundry/device-camera:2.0.0
+          command:
+            - /device-camera
+            - '--confdir'
+            - /res
+          ports:
+            - containerPort: 59985
+          env:
+            - name: EDGEX_SECURITY_SECRET_STORE
+              value: 'false'
+          volumeMounts:
+            - name: config
+              mountPath: /res
+            - name: devices
+              mountPath: /res/devices 
+            - name: profiles
+              mountPath: /res/profiles   
+          readinessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59985
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v2/ping
+              port: 59985
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
