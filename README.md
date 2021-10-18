@@ -13,3 +13,5 @@ Install steps:
    kubectl apply -f https://projectcontour.io/quickstart/contour.yaml  
 5.config contour ingress:
   kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/ingress.yml
+  
+![image](https://user-images.githubusercontent.com/80612608/137682898-3cd91b4f-8882-4b70-978f-8b898809a8c6.png)
