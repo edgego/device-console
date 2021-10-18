@@ -1,4 +1,4 @@
-# Edge-console
+# Edge-console Over Kubernetes
 Edge admin console
 
 Install steps:
