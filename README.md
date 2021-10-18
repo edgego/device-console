@@ -33,6 +33,14 @@ Install steps:
  
  <img width="1901" alt="autoevent" src="https://user-images.githubusercontent.com/80612608/137684129-2f06f367-f9a4-417d-ba3a-d9a44f074a66.png">
  <img width="1890" alt="comamndmetrics" src="https://user-images.githubusercontent.com/80612608/137684153-29e96c89-1909-41f1-a27e-8a0c42de3eda.png">
+ 
+ Scheduer Manager:
+ <img width="1274" alt="scheduler" src="https://user-images.githubusercontent.com/80612608/137684768-63ac698a-2583-4049-8e57-96a902ab1b57.png">
+ 
+ Rule Manager:
+ 
+ <img width="1885" alt="rule" src="https://user-images.githubusercontent.com/80612608/137684819-e00cceb9-5d59-4624-8811-a95798d62e56.png">
+
 
   App service management:
 ![image](https://user-images.githubusercontent.com/80612608/137682898-3cd91b4f-8882-4b70-978f-8b898809a8c6.png)
