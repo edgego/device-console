@@ -1,0 +1,69 @@
+
+apiVersion: projectcontour.io/v1
+kind: HTTPProxy
+metadata:
+  name: edgeconsole
+  namespace: edge-system
+spec:
+  virtualhost:
+    fqdn: console.edgego.com
+    corsPolicy:
+        allowCredentials: true
+        allowOrigin:
+          - "*" 
+        allowMethods:
+          - GET
+          - POST
+          - OPTIONS
+          - PUT
+          - PATCH
+          - OPTIONS
+          - DELETE
+        allowHeaders:
+          - authorization
+          - cache-control
+        exposeHeaders:
+          - Content-Length
+          - Content-Range
+        maxAge: "10m" # preflight requests can be cached for 10 minutes.
+  routes:
+    - services:
+        - name: edge-ui
+          port: 4000
+      conditions:
+        - prefix: /
+---
+apiVersion: projectcontour.io/v1
+kind: HTTPProxy
+metadata:
+  name: grafanadashboard
+  namespace: monitoring
+spec:
+  virtualhost:
+    fqdn: grafana.edgego.com
+    corsPolicy:
+        allowCredentials: true
+        allowOrigin:
+          - "*"
+        allowMethods:
+          - GET
+          - POST
+          - OPTIONS
+          - PUT
+          - PATCH
+          - OPTIONS
+          - DELETE
+        allowHeaders:
+          - authorization
+          - cache-control
+        exposeHeaders:
+          - Content-Length
+          - Content-Range
+        maxAge: "10m" 
+  routes:
+    - services:
+        - name: grafana
+          port: 3000
+      conditions:
+        - prefix: /
+   
