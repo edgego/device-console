@@ -1,4 +1,4 @@
-# edge-console
+# Edge-console
 Edge admin console
 
 Install steps:
