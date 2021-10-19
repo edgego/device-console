@@ -74,4 +74,6 @@ Install steps:
 
 
   App service management:
+  
+    a. Query ,Deploy,unDeploy application
 ![image](https://user-images.githubusercontent.com/80612608/137682898-3cd91b4f-8882-4b70-978f-8b898809a8c6.png)
