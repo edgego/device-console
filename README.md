@@ -34,9 +34,10 @@ Install steps:
  <img width="1896" alt="profile" src="https://user-images.githubusercontent.com/80612608/137683546-8b37597b-6f1b-424c-9000-9c4b50e6e986.png">
  
  Device service :
-    a. Check assocaited devices
-    b. Bulk import and delete devices
-    c. Supply dowanload and print function
+ 
+     a. Check assocaited devices
+     b. Bulk import and delete devices
+     c. Supply dowanload and print function
  
  <img width="1883" alt="deviceservice" src="https://user-images.githubusercontent.com/80612608/137684000-dc0af605-7d0a-4013-b270-acb01906b3db.png">
  
