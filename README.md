@@ -73,7 +73,7 @@ Install steps:
  <img width="1885" alt="rule" src="https://user-images.githubusercontent.com/80612608/137684819-e00cceb9-5d59-4624-8811-a95798d62e56.png">
 
 
-  App service management:
+  App service Manager:
   
     a. Query ,Deploy,unDeploy application
 ![image](https://user-images.githubusercontent.com/80612608/137682898-3cd91b4f-8882-4b70-978f-8b898809a8c6.png)
