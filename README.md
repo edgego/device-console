@@ -42,6 +42,11 @@ Install steps:
  <img width="1883" alt="deviceservice" src="https://user-images.githubusercontent.com/80612608/137684000-dc0af605-7d0a-4013-b270-acb01906b3db.png">
  
  Device Dashboard:
+     
+     a. Query ,Create ,Update, Delete device
+     b. Create , Delete ,Monitor Autoevent
+     c. Define device protocol
+     d. Monitor command
  
  <img width="1901" alt="autoevent" src="https://user-images.githubusercontent.com/80612608/137684129-2f06f367-f9a4-417d-ba3a-d9a44f074a66.png">
  <img width="1890" alt="comamndmetrics" src="https://user-images.githubusercontent.com/80612608/137684153-29e96c89-1909-41f1-a27e-8a0c42de3eda.png">
