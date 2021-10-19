@@ -40,7 +40,8 @@ Install steps:
      c. Supply dowanload and print function
  
  <img width="1883" alt="deviceservice" src="https://user-images.githubusercontent.com/80612608/137684000-dc0af605-7d0a-4013-b270-acb01906b3db.png">
- 
+ <img width="1891" alt="notif" src="https://user-images.githubusercontent.com/80612608/137927692-259b56ab-7b9f-4070-afd9-ee49765a4529.png">
+
  Device Dashboard:
      
      a. Query ,Create ,Update, Delete device
@@ -50,6 +51,14 @@ Install steps:
  
  <img width="1901" alt="autoevent" src="https://user-images.githubusercontent.com/80612608/137684129-2f06f367-f9a4-417d-ba3a-d9a44f074a66.png">
  <img width="1890" alt="comamndmetrics" src="https://user-images.githubusercontent.com/80612608/137684153-29e96c89-1909-41f1-a27e-8a0c42de3eda.png">
+ 
+ Notification Manager:
+ 
+ <img width="1262" alt="subs" src="https://user-images.githubusercontent.com/80612608/137927634-e916ee03-5fe9-40bc-820e-453ca6eaa07c.png">
+ 
+ 
+
+ 
  
  Scheduer Manager:
  <img width="1274" alt="scheduler" src="https://user-images.githubusercontent.com/80612608/137684768-63ac698a-2583-4049-8e57-96a902ab1b57.png">
