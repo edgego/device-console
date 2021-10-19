@@ -26,7 +26,9 @@ Install steps:
   
   ![image](https://user-images.githubusercontent.com/80612608/137683450-26833a9a-7d88-446e-b0a0-6df5b400171c.png)
 
- Profile  Dashboard:
+ Profile Manager: 
+   a. Create ,delete ,update profile
+   b. Check profile's resources ,device commands, and associated devcices
  
  <img width="1896" alt="profile" src="https://user-images.githubusercontent.com/80612608/137683546-8b37597b-6f1b-424c-9000-9c4b50e6e986.png">
  
