@@ -15,6 +15,7 @@ Install steps:
   kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/ingress.yml
   
  Device geography map, all devices with satellite location can be found from the map. 
+ 
      a. Query device with name 
      b. Check device status by different color
      c. Check all autoevents throughput , or individual autoevent
