@@ -40,7 +40,6 @@ Install steps:
      c. Supply dowanload and print function
  
  <img width="1883" alt="deviceservice" src="https://user-images.githubusercontent.com/80612608/137684000-dc0af605-7d0a-4013-b270-acb01906b3db.png">
- <img width="1891" alt="notif" src="https://user-images.githubusercontent.com/80612608/137927692-259b56ab-7b9f-4070-afd9-ee49765a4529.png">
 
  Device Dashboard:
      
@@ -55,7 +54,7 @@ Install steps:
  Notification Manager:
  
  <img width="1262" alt="subs" src="https://user-images.githubusercontent.com/80612608/137927634-e916ee03-5fe9-40bc-820e-453ca6eaa07c.png">
- 
+ <img width="1891" alt="notif" src="https://user-images.githubusercontent.com/80612608/137927692-259b56ab-7b9f-4070-afd9-ee49765a4529.png">
  
 
  
