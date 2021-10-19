@@ -16,10 +16,8 @@ Install steps:
   
  Device geography map, all devices with satellite location can be found from the map. 
  
-   a. Query device with name
-   
+   a. Query device with name 
    b. Check device status by different color
-   
    c. Check all autoevents throughput , or individual autoevent
     
   <img width="1894" alt="地理" src="https://user-images.githubusercontent.com/80612608/137683025-6dd89a46-660b-4b7e-874c-0e44f3cccd1e.png">
