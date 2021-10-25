@@ -3,15 +3,16 @@ EdgeDevice admin console
 
 Install steps:
 
-1. install rancher local-path storage class for kubernetes:
+1. Setup kubernetes cluster,How to setup cluster refer 
+2. install rancher local-path storage class for kubernetes https://kubernetes.io/docs/setup/
    kubectl apply -f https://github.com/rancher/local-path-provisioner/blob/master/deploy/provisioner.yaml
-2. install edge console :
+3. install edge console :
    kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/edge-localpath.yaml
-3. install monitor module :
+4. install monitor module :
    kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/monitoring.yml
-4. install contour
+5. install contour
    kubectl apply -f https://projectcontour.io/quickstart/contour.yaml  
-5. config contour ingress:
+6. config contour ingress:
   kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/ingress.yml
   
  Device geography map, all devices with satellite location can be found from the map. 
