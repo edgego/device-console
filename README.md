@@ -33,7 +33,7 @@ Install steps:
   
 <img width="1876" alt="a" src="https://user-images.githubusercontent.com/80612608/185780924-8af19103-fce1-4b2b-9514-f517d80123b5.png">
 
-Device dashboard provide functions such as add device , delete device . update device , test device and monitor device.
+Device dashboard provide functions such as add device , delete device . update device , bulk import devcices ,test device and monitor device.
 
 <img width="1894" alt="b" src="https://user-images.githubusercontent.com/80612608/185781008-ef4a281e-8426-4cb5-aacc-e09fbf00d0d1.png">
 
