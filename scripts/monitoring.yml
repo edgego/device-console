@@ -2172,7 +2172,7 @@ spec:
             defaultMode: 420
       containers:
         - name: grafana
-          image: grafana/grafana:8.1.1
+          image: grafana/grafana:8.2.5
           ports:
             - containerPort: 3000
               protocol: TCP
@@ -2225,12 +2225,54 @@ data:
     rule_files:
     - /etc/config/rules/*.rules
     scrape_configs:
-    - job_name: edge-command
+     - job_name: edge-command
       scrape_interval: 10s
       metrics_path: /api/v2/pmetrics
       static_configs:
       - targets:
         - edge-core-command.edge-system:59882
+    - job_name: device-opcua
+      scrape_interval: 10s
+      metrics_path: /metrics
+      static_configs:
+      - targets:
+        - device-opcua.edge-system:9090
+    - job_name: device-modbus
+      scrape_interval: 10s
+      metrics_path: /metrics
+      static_configs:
+      - targets:
+        - device-modbus.edge-system:9090
+    - job_name: device-onvif-camera
+      scrape_interval: 10s
+      metrics_path: /metrics
+      static_configs:
+      - targets:
+        - device-onvif-camera.edge-system:9090
+    - job_name: device-usb-camera
+      scrape_interval: 10s
+      metrics_path: /metrics
+      static_configs:
+      - targets:
+        - device-usb-camera.edge-system:9090
+    - job_name: device-rest
+      scrape_interval: 10s
+      metrics_path: /metrics
+      static_configs:
+      - targets:
+        - device-rest.edge-system:9090
+    - job_name: device-snmp
+      scrape_interval: 10s
+      metrics_path: /metrics
+      static_configs:
+      - targets:
+        - device-snmp.edge-system:9090    
+    - job_name: device-mqtt
+      scrape_interval: 10s
+      metrics_path: /metrics
+      static_configs:
+      - targets:
+        - device-mqtt.edge-system:9090    
     - job_name: prometheus
       static_configs:
       - targets:
@@ -2239,7 +2281,10 @@ data:
       scrape_interval: 30s
       static_configs:
       - targets:
-        - 192.168.2.110:9100  
+        - 192.168.1.110:9100  
+        - 192.168.1.111:9100
+        - 192.168.1.112:9100
+
     - job_name: kubernetes-apiservers
       kubernetes_sd_configs:
       - role: endpoints
@@ -2462,7 +2507,7 @@ spec:
             defaultMode: 420
       containers:
         - name: prometheus-server
-          image: prom/prometheus:v2.29.1
+          image: prom/prometheus:v2.37.0
           args:
             - '--config.file=/etc/prometheus/config/prometheus.yml'
             - '--storage.tsdb.path=/prometheus'
