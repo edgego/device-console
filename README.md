@@ -3,7 +3,7 @@ Edge Device admin console
 
 Install steps:
 
-1. Setup kubernetes cluster,How to setup cluster refer https://kubernetes.io/docs/setup/
+1. Setup kubernetes cluster,How to setup cluster refer https://kubernetes.io/docs/setup/, or download ecm to setup kubernetes cluster from https://github.com/edgego/ecm, ecm is more convenient to install kubernetes cluster.
 2. install rancher local-path storage class for kubernetes https://kubernetes.io/docs/setup/
    kubectl apply -f https://github.com/rancher/local-path-provisioner/blob/master/deploy/provisioner.yaml
 3. install edge console :
