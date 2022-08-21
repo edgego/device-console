@@ -28,7 +28,7 @@ spec:
         maxAge: "10m" # preflight requests can be cached for 10 minutes.
   routes:
     - services:
-        - name: edge-ui
+        - name: device-dashboard
           port: 4000
       conditions:
         - prefix: /
