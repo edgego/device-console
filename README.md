@@ -29,4 +29,7 @@ Install steps:
   ![image](https://user-images.githubusercontent.com/80612608/137683450-26833a9a-7d88-446e-b0a0-6df5b400171c.png)
 
  
-<img width="1920" alt="a" src="https://user-images.githubusercontent.com/80612608/185780864-d431771b-3c1b-437c-987d-8ae6bc19b174.png">
+  Device service dashboard
+  
+  
+<img width="1876" alt="a" src="https://user-images.githubusercontent.com/80612608/185780924-8af19103-fce1-4b2b-9514-f517d80123b5.png">
