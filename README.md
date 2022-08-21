@@ -1,5 +1,14 @@
 # Edge Device Dashboard Over Kubernetes
-Edge Device admin console
+
+## Edge Device admin Edge Device admin console
+ Edge Device Dashboard is designed for industry edge cloud , a small and low cost tool easy to  manager industry edge devices.  Edge Device Dashboard can run on different platform(x86-amd64, arm,arm64), support winows, linux ,Mac OS.
+
+## Key Features
+
+- Cross platform, Edge Device Dashboard  can create edge cloud on amd64,arm64,arm device. 
+- Edge Device Dashboard  support english and simple chinese language, according to browswer's language setting.
+- Low cost,low carbon, small memory size(less than 2G) and hard disk size.
+- Simplify operations by UI dashboard.
 
 Install steps:
 
