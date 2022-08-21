@@ -31,7 +31,7 @@ Install steps:
      b. Check device status by different color
      c. Check all autoevents throughput , or individual autoevent
     
-  Monitor autoevent:
+  Monitor device's autoevent:
   
   ![image](https://user-images.githubusercontent.com/80612608/137683450-26833a9a-7d88-446e-b0a0-6df5b400171c.png)
 
