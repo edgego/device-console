@@ -40,6 +40,9 @@ Install steps:
      a. Check assocaited devices
      b. Bulk import and delete devices
      c. Supply dowanload and print function
+     
+     ![image](https://user-images.githubusercontent.com/80612608/185780742-c983f894-c477-4f20-86a7-f8dfc1e15d6d.png)
+
 
 
  Device Dashboard:
