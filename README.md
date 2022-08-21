@@ -22,8 +22,6 @@ Install steps:
      b. Check device status by different color
      c. Check all autoevents throughput , or individual autoevent
     
-  <img width="1894" alt="地理" src="https://user-images.githubusercontent.com/80612608/137683025-6dd89a46-660b-4b7e-874c-0e44f3cccd1e.png">
-  
   Monitor autoevent:
   
   ![image](https://user-images.githubusercontent.com/80612608/137683450-26833a9a-7d88-446e-b0a0-6df5b400171c.png)
@@ -41,5 +39,6 @@ Rule Engine dashboard can operate data source ,data stream and rule easily
 
 <img width="1832" alt="c" src="https://user-images.githubusercontent.com/80612608/185781664-6a06176d-3244-4660-91e1-c3b2fb9809ca.png">
 
+App Service dashboard provide function to operate data with buildins and export data via http and mqtt.
 
-
+![Uploading d.png…]()
