@@ -41,9 +41,7 @@ Install steps:
      b. Bulk import and delete devices
      c. Supply dowanload and print function
      
-     ![image](https://user-images.githubusercontent.com/80612608/185780742-c983f894-c477-4f20-86a7-f8dfc1e15d6d.png)
-
-
+    ![image](https://user-images.githubusercontent.com/80612608/185780795-097dde5c-8ef1-4200-92a1-3e0a640606e8.png)
 
  Device Dashboard:
      
