@@ -29,7 +29,11 @@ Install steps:
   ![image](https://user-images.githubusercontent.com/80612608/137683450-26833a9a-7d88-446e-b0a0-6df5b400171c.png)
 
  
-  Device service dashboard
-  
+  Device service dashboard can deploy device service dynamiacally
   
 <img width="1876" alt="a" src="https://user-images.githubusercontent.com/80612608/185780924-8af19103-fce1-4b2b-9514-f517d80123b5.png">
+
+Device dashboard
+
+<img width="1894" alt="b" src="https://user-images.githubusercontent.com/80612608/185781008-ef4a281e-8426-4cb5-aacc-e09fbf00d0d1.png">
+
