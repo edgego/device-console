@@ -37,7 +37,7 @@ Device dashboard provide functions such as add device , delete device . update d
 
 <img width="1894" alt="b" src="https://user-images.githubusercontent.com/80612608/185781008-ef4a281e-8426-4cb5-aacc-e09fbf00d0d1.png">
 
-Rule Engine
+Rule Engine dashboard can operate data source ,data stream and rule easily
 
 <img width="1832" alt="c" src="https://user-images.githubusercontent.com/80612608/185781664-6a06176d-3244-4660-91e1-c3b2fb9809ca.png">
 
