@@ -43,9 +43,7 @@ Alternative simple way to install:
      
      or 
      
-     Run with ui:
-     # The commands will start ecm daemon with an interactionable UI.
-     ecm -d serve --bind-port 8080
+     Run with ui:  ecm -d serve --bind-port 8080
      
      <img width="1152" alt="ddd1" src="https://user-images.githubusercontent.com/80612608/187816142-38e4f8df-e849-492e-9504-99b64bca8c9b.png">
 
