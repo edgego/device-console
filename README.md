@@ -16,7 +16,7 @@ Install steps:
 2. install rancher local-path storage class for kubernetes https://kubernetes.io/docs/setup/
    kubectl apply -f https://github.com/rancher/local-path-provisioner/blob/master/deploy/provisioner.yaml
 3. install edge console :
-   kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/edge-localpath.yaml
+   kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/edge-system-redis-localpath.yaml
 4. install monitor module :
    kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/monitoring.yml
 5. install contour
