@@ -2941,6 +2941,7 @@ data:
         metrics_path: /api/v2/pmetrics
         static_configs:
         - targets:
+          - edge-core-command.edge-system:59882
       - job_name: device-rfid-llrp
         scrape_interval: 10s
         metrics_path: /metrics
