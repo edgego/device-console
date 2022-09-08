@@ -2144,14 +2144,26 @@ data:
     apiVersion: 1
 
     providers:
-    - name: 'Prometheus'
+    - name: autoevent
       orgId: 1
-      folder: ''
+      folder: 'autoevent'
       type: file
+      updateIntervalSeconds: 10
       disableDeletion: false
-      editable: true
+      allowUiUpdates: false
       options:
-        path: /var/lib/grafana/dashboards
+        path: /etc/grafana/provisioning/dashboards/autoevent
+        foldersFromFilesStructure: true
+    - name: command
+      orgId: 1
+      folder: 'command'
+      type: file
+      updateIntervalSeconds: 10
+      disableDeletion: false
+      allowUiUpdates: false
+      options:
+        path: /etc/grafana/provisioning/dashboards/command
+        foldersFromFilesStructure: true
 ---
 kind: ConfigMap
 apiVersion: v1
@@ -2886,11 +2898,9 @@ spec:
               mountPath: /var/lib/grafana
               subPath: grafana
             - name: autoevent
-              mountPath: /var/lib/grafana/dashboards/autoevent-dashboard.json
-              subPath: autoevent-dashboard.json
+              mountPath: /etc/grafana/provisioning/dashboards/autoevent
             - name: command
-              mountPath: /var/lib/grafana/dashboards/command-dashboard.json
-              subPath: command-dashboard.json
+              mountPath: /etc/grafana/provisioning/dashboards/command
             - name: datasource
               mountPath: /etc/grafana/provisioning/datasources
             - name: dashboard
