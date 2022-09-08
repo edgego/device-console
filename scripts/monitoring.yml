@@ -2842,7 +2842,6 @@ spec:
     - protocol: TCP
       port: 3000
       targetPort: 3000
-      nodePort: 30091
   selector:
     app: grafana
   type: NodePort
