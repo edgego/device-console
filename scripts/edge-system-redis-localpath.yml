@@ -503,7 +503,7 @@ data:
     Password = "su"
       [Database.Scheme]
       User = "user"
-          
+
       [MQTTBroker]
          Schema="tcp"
          Host="192.168.1.244"
@@ -569,13 +569,11 @@ data:
       StoreAndForward = true
       RetryInterval = "5s"
       MaxRetryCount = 10
-      Image = 'edgego/app-service-configurable:v2.2.0'
       Host = 'edge-redis-ha-announce-0'
       Port=6379
-      Name = 'appservice'
       Password = ''
       Username = ''
-      PublishTopic = "diao"
+      PublishTopic = "test"
 
     [Registry]
     Host = "edge-core-consul"
@@ -1207,6 +1205,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: edge-redis-ha-configmap-test
+  namespace: edge-system
   labels:
     app: redis-ha
     heritage: "Helm"
@@ -1235,6 +1234,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: edge-redis-ha-service-test
+  namespace: edge-system
   labels:
     app: redis-ha
     heritage: "Helm"
@@ -1616,33 +1616,11 @@ data:
 
 
     edgex:
-      mqttMsgBus: #redis connection key
-        protocol: tcp
-        server: edge-mqtt-broker
-        port: 1883
-        type: mqtt
-        #  Below is optional configurations settings for mqtt
-        #  type: mqtt
-        optional:
-            ClientId: client1
-            Username: user1
-            Password: password
-            Qos: 1
-            KeepAlive: 5000
-            Retained: true
-            ConnectionPayload:
-        #    CertFile:
-        #    KeyFile:
-        #    CertPEMBlock:
-        #    KeyPEMBlock:
-            SkipCertVerify: true
-
-      #zeroMsgBus: #connection key
-      #  protocol: tcp
-      #  server: localhost
-      #  port: 5571
-      #  type: zero
-
+      redisMsgBus: #redis connection key
+        protocol: redis
+        server: edge-redis-ha-announce-0
+        port: 6379
+        type: redis
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -2059,16 +2037,16 @@ data:
 
     Type="edgex-messagebus"
       [Trigger.EdgexMessageBus]
-      Type = "mqtt"
+       Type = "redis"
         [Trigger.EdgexMessageBus.SubscribeHost]
-        Host = "edge-mqtt-broker"
-        Port = 1883
-        Protocol = "tcp"
+          Host = "edge-redis-ha-announce-0"
+          Port = 6379
+          Protocol = "redis"
         SubscribeTopics="edgex/events/#"
         [Trigger.EdgexMessageBus.PublishHost]
-        Host = "edge-mqtt-broker"
-        Port = 1883
-        Protocol = "tcp"
+          Host = "edge-redis-ha-announce-0"
+          Port = 6379
+          Protocol = "redis"
         PublishTopic="rules-events"
         [Trigger.EdgexMessageBus.Optional]
         authmode = 'usernamepassword'  # required for redis messagebus (secure or insecure).
