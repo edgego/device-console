@@ -4,7 +4,6 @@ kind: Namespace
 metadata:
   name: edge-system
 ---
----
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -106,6 +105,7 @@ data:
     RequestTimeout = '5s'
     
       [Service.CORSConfiguration]
+
       EnableCORS = false
       CORSAllowCredentials = false
       CORSAllowedOrigin = "http://edge-support-scheduler"
@@ -113,6 +113,7 @@ data:
       CORSAllowedHeaders = "Authorization, Accept, Accept-Language, Content-Language, Content-Type, X-Correlation-ID"
       CORSExposeHeaders = "Cache-Control, Content-Language, Content-Length, Content-Type, Expires, Last-Modified, Pragma, X-Correlation-ID"
       CORSMaxAge = 3600
+
 
     [Registry]
 
@@ -207,7 +208,7 @@ data:
 
     RequestTimeout = '5s'
     
-   [Service.CORSConfiguration]
+    [Service.CORSConfiguration]
       EnableCORS = false
       CORSAllowCredentials = false
       CORSAllowedOrigin = "http://edge-core-metadata"
@@ -215,6 +216,7 @@ data:
       CORSAllowedHeaders = "Authorization, Accept, Accept-Language, Content-Language, Content-Type, X-Correlation-ID"
       CORSExposeHeaders = "Cache-Control, Content-Language, Content-Length, Content-Type, Expires, Last-Modified, Pragma, X-Correlation-ID"
       CORSMaxAge = 3600
+
 
     [Registry]
 
@@ -327,7 +329,7 @@ data:
 
     RequestTimeout = '5s'
     
-    [Service.CORSConfiguration]
+     [Service.CORSConfiguration]
       EnableCORS = false
       CORSAllowCredentials = false
       CORSAllowedOrigin = "http://edge-support-notifications"
@@ -432,7 +434,6 @@ data:
       CORSExposeHeaders = "Cache-Control, Content-Language, Content-Length, Content-Type, Expires, Last-Modified, Pragma, X-Correlation-ID"
       CORSMaxAge = 3600
 
-
     [Registry]
 
     Host = 'localhost'
@@ -502,7 +503,7 @@ data:
     Password = "su"
       [Database.Scheme]
       User = "user"
-      
+       
       [MQTTBroker]
          Schema="tcp"
          Host="192.168.1.244"
@@ -568,13 +569,11 @@ data:
       StoreAndForward = true
       RetryInterval = "5s"
       MaxRetryCount = 10
-      Image = 'edgego/app-service-configurable:v2.2.0'
       Host = 'edge-redis-ha-announce-0'
       Port=6379
-      Name = 'appservice'
       Password = ''
       Username = ''
-      PublishTopic = "diao"
+      PublishTopic = "test"
 
     [Registry]
     Host = "edge-core-consul"
@@ -627,15 +626,6 @@ data:
 
     RequestTimeout = '5s'
 
-
-    [Registry]
-
-    Host = 'localhost'
-
-    Port = 8500
-
-    Type = 'consul'
-    
     [Service.CORSConfiguration]
       EnableCORS = false
       CORSAllowCredentials = false
@@ -645,6 +635,15 @@ data:
       CORSExposeHeaders = "Cache-Control, Content-Language, Content-Length, Content-Type, Expires, Last-Modified, Pragma, X-Correlation-ID"
       CORSMaxAge = 3600
 
+
+    [Registry]
+
+    Host = 'localhost'
+
+    Port = 8500
+
+    Type = 'consul'
+    
 
     [Clients]
       [Clients.core-metadata]
@@ -1206,6 +1205,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: edge-redis-ha-configmap-test
+  namespace: edge-system
   labels:
     app: redis-ha
     heritage: "Helm"
@@ -1234,6 +1234,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: edge-redis-ha-service-test
+  namespace: edge-system
   labels:
     app: redis-ha
     heritage: "Helm"
@@ -1671,7 +1672,57 @@ data:
   edgex.yaml: |
     app1:
         messageType: event
-        port: 5566
+        port: 6379
+        protocol: redis
+        server: edge-redis-ha-announce-0
+        topic: app1-rules-event
+        type: redis
+    app2:
+        messageType: event
+        port: 6379
+        protocol: redis
+        server: edge-redis-ha-announce-0
+        topic: app2-rules-event
+        type: redis
+    app3:
+        messageType: event
+        port: 6379
+        protocol: redis
+        server: edge-redis-ha-announce-0
+        topic: app3-rule-events
+        type: redis
+    default:
+        messageType: request
+        port: 6379
+        protocol: redis
+        server: edge-redis-ha-announce-0
+        topic: edgex/events/device#
+        type: redis
+    demo1:
+        messageType: request
+        port: 6379
+        protocol: redis
+        server: edge-redis-ha-announce-0
+        topic: edgex/events/device/Test-Device-Modbus-Profile/modbus-tcp#
+        type: redis
+    demo2:
+        messageType: event
+        port: 6379
+        protocol: redis
+        server: edge-redis-ha-announce-0
+        topic: rules-events
+        type: redis
+    demo3:
+        messageType: request
+        port: 6379
+        protocol: redis
+        server: edge-redis-ha-announce-0
+        topic: edgex/events/device/Test-Device-Modbus-Profile/modbus-tcp#
+        type: redis
+    share_conf:
+        connectionSelector: edgex.mqttMsgBus
+        messageType: event
+        port: 1883
         protocol: tcp
         server: edge-app-rules-engine
         topic: rules-events
@@ -1935,8 +1986,7 @@ data:
 
     Port = 59701
 
-    ServerBindAddr = "0.0.0.0" # if blank, uses default Go behavior
-    https://golang.org/pkg/net/#Listen
+    ServerBindAddr = "0.0.0.0" # if blank, uses default Go behavior https://golang.org/pkg/net/#Listen
 
     StartupMsg = "app-rules-engine has Started"
 
@@ -1978,8 +2028,7 @@ data:
     # so Database credentials can be pulled from Vault. Also now require when
     running with secure Consul
 
-    # Note when running in docker from compose file set the following
-    environment variables:
+    # Note when running in docker from compose file set the following environment variables:
 
     #   - SecretStore_Host: edgex-vault
 
@@ -2017,15 +2066,15 @@ data:
       [Trigger.EdgexMessageBus]
       Type = "zero"
         [Trigger.EdgexMessageBus.SubscribeHost]
-        Host = "edge-core-data"
-        Port = 5563
-        Protocol = "tcp"
-        SubscribeTopics="edgex/events/#"
+          Host = "edge-core-data"
+          Port = 5563
+          Protocol = "tcp"
+          SubscribeTopics="edgex/events/#"
         [Trigger.EdgexMessageBus.PublishHost]
-        Host = "*"
-        Port = 5566
-        Protocol = "tcp"
-        PublishTopic="rules-events"
+          Host = "*"
+          Port = 5566
+          Protocol = "tcp"
+          PublishTopic="rules-events"
         [Trigger.EdgexMessageBus.Optional]
         authmode = 'usernamepassword'  # required for redis messagebus (secure or insecure).
         secretname = 'redisdb'
