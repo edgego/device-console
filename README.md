@@ -71,7 +71,7 @@ Alternative simple way to install:
 
 Device dashboard provide functions such as add device , delete device . update device , bulk import devcices ,test device and monitor device.
 
-![image](https://github.com/edgego/device-console/assets/80612608/66b9ccf6-3945-4d35-9286-6cdd7314cfb8)
+![image](https://github.com/edgego/device-console/assets/80612608/e0e26df3-742a-4235-9120-a05fa3bcc962)
 
 
 Rule Engine dashboard can operate data source ,data stream and rule easily
