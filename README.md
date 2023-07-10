@@ -74,9 +74,13 @@ Device dashboard provide functions such as add device , delete device . update d
 ![image](https://github.com/edgego/device-console/assets/80612608/e0e26df3-742a-4235-9120-a05fa3bcc962)
 
 
-Rule Engine dashboard can operate data source ,data stream and rule easily
+Rule Engine dashboard can operate data stream and rule easily
 
-<img width="1832" alt="c" src="https://user-images.githubusercontent.com/80612608/185781664-6a06176d-3244-4660-91e1-c3b2fb9809ca.png">
+![image](https://github.com/edgego/device-console/assets/80612608/aa9cd148-9bec-4559-939b-b5635ff9a632)
+
+![image](https://github.com/edgego/device-console/assets/80612608/9f296ae8-640f-4943-a80b-b5bb305062cd)
+
+
 
 App Service dashboard provide function to operate data with buildin functions and export data via http or mqtt.
 <img width="1863" alt="d" src="https://user-images.githubusercontent.com/80612608/185781924-2efe1d1b-0d1a-46a7-8ee4-f4d5e6c5299e.png">
