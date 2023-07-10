@@ -64,10 +64,10 @@ Alternative simple way to install:
   ![image](https://github.com/edgego/device-console/assets/80612608/b90250f7-133b-4614-a775-85a116930bca)
 
 
- 
   Device service dashboard can deploy device service dynamically
   
-<img width="1876" alt="a" src="https://user-images.githubusercontent.com/80612608/185780924-8af19103-fce1-4b2b-9514-f517d80123b5.png">
+ ![image](https://github.com/edgego/device-console/assets/80612608/4576c480-310a-479c-8774-e0e403d934c6)
+
 
 Device dashboard provide functions such as add device , delete device . update device , bulk import devcices ,test device and monitor device.
 
