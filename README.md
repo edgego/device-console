@@ -61,7 +61,8 @@ Alternative simple way to install:
     
   Monitor device's autoevent:
   
-  ![image](https://user-images.githubusercontent.com/80612608/137683450-26833a9a-7d88-446e-b0a0-6df5b400171c.png)
+  ![image](https://github.com/edgego/device-console/assets/80612608/b90250f7-133b-4614-a775-85a116930bca)
+
 
  
   Device service dashboard can deploy device service dynamically
