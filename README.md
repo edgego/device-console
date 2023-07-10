@@ -64,7 +64,7 @@ Alternative simple way to install:
   ![image](https://github.com/edgego/device-console/assets/80612608/b90250f7-133b-4614-a775-85a116930bca)
 
 
-  Device service dashboard can deploy device service dynamically
+  Device service dashboard can deploy or undeploy device service online
   
  ![image](https://github.com/edgego/device-console/assets/80612608/4576c480-310a-479c-8774-e0e403d934c6)
 
