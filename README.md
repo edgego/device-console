@@ -9,6 +9,14 @@
 - Low cost,low carbon, small memory size(500Mi or above) and hard disk size.
 - Simplify operations by UI dashboard.
 
+## System module
+  - device metadate, include device profile,device service, devices
+  - scheduler
+  - notification
+  - rule engine
+  - app service
+  - device dashboard
+
 Install steps:
 
 1. Setup kubernetes cluster,How to setup cluster refer https://kubernetes.io/docs/setup/, or download ecm to setup kubernetes cluster from https://github.com/edgego/ecm, ecm is more convenient to install kubernetes cluster.
