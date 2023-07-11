@@ -555,7 +555,24 @@ data:
         Host = 'edge-app-rules-engine'
         Port = 59701
         PathPrefix = "/app-service"
-        
+
+     [MQTTBroker]
+         Schema="tcp"
+         Host="edge-mqtt-broker"
+         Port=1883
+         Qos=0
+         KeepAlive=3600
+         IncomingTopic="DataTopic"
+         ResponseTopic="ResponseTopic"
+         
+      [DeviceServices]
+         Names = ["device-modbus","device-opcua","device-mqtt","device-snmp","device-rest","device-rfid-llrp","device-onvif-camera"]
+         Images= ["edgego/device-modbus:v2.3.0","edgego/device-opcua:v2.3.0","edgego/device-mqtt:v2.3.0","edgego/device-snmp:v2.3.0","edgego/device-rest:v2.3.0","edgego/device-rfid-llrp:v2.3.0","edgego/device-onvif-camera:v2.3.0"]
+     
+      [CustomAppServices]
+        Names = ["app-detect-face","app-caffe-classifier"]
+        Images =["edgego/app-detect-face:v2.2.0","edgego/app-caffe-classifier:v2.2.0"]
+  
      [Deploy]
        Namespace = 'edge-system'
        Image = 'edgego/app-service-configurable:v2.2.0'
@@ -743,7 +760,7 @@ spec:
             claimName: device-dashboard-claim
       containers:
         - name: device-dashboard
-          image: edgego/device-dashboard:v2.2.0
+          image: edgego/device-dashboard:v2.3.5
           imagePullPolicy: Always
           ports:
             - containerPort: 4000
