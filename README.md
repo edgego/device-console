@@ -55,12 +55,11 @@ Alternative simple way to install:
 
 ##  Device dashbaord Overview
 
-    Edge device console easily manage all device metadata : profiles, device services , devices, application services. Can onlime deploy and undeploy device services and application services .
+     Edge device console easily manage all device metadata : profiles, device services , devices, application services. Can onlime deploy and undeploy device services and application services .
   From device dashboard can check all devices' operating state and admin state.
 
    ![image](https://github.com/edgego/device-console/assets/80612608/217f48f7-33f5-4be8-950b-77a77801cf4e)
         
-
  Device geography map, all devices with satellite location can be found from the map. 
  
      a. Query device with name 
