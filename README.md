@@ -22,7 +22,6 @@ Install steps:
    kubectl apply -f https://projectcontour.io/quickstart/contour.yaml  
 6. config contour ingress:
   kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/ingress.yml
-7. import autoevent(autoevent.json) and command(command.json) dashboard from dir scripts to grafana.
 
 Alternative simple way to install:
 
