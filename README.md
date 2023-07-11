@@ -53,8 +53,9 @@ Alternative simple way to install:
      
      <img width="1152" alt="ddd1" src="https://user-images.githubusercontent.com/80612608/187816142-38e4f8df-e849-492e-9504-99b64bca8c9b.png">
 
- Overview:    Edge device console easily manage all device metadata : profiles, device services , devices, application services. Can onlime deploy and undeploy device services and application services .
-           From device dashboard can check all devices' operating state and admin state.
+Device dashbaord Overview:
+    Edge device console easily manage all device metadata : profiles, device services , devices, application services. Can onlime deploy and undeploy device services and application services .
+  From device dashboard can check all devices' operating state and admin state.
 
    ![image](https://github.com/edgego/device-console/assets/80612608/217f48f7-33f5-4be8-950b-77a77801cf4e)
         
