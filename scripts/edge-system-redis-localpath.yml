@@ -760,7 +760,7 @@ spec:
             claimName: device-dashboard-claim
       containers:
         - name: device-dashboard
-          image: edgego/device-dashboard:v2.3.5
+          image: edgego/device-dashboard:v2.3.6
           imagePullPolicy: Always
           ports:
             - containerPort: 4000
