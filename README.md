@@ -10,7 +10,7 @@
 - Simplify operations by UI dashboard.
 
 ## System module
-  - device metadate, include device profile,device service, devices
+  - device metadate, including: device profile,device service, devices
   - scheduler
   - notification
   - rule engine
