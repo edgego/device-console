@@ -33,7 +33,7 @@ Install steps:
 
 Alternative simple way to install:
 
-1. download ecm from https://github.com/edgego/ecm/releases/tag/V1.0.2
+1. download ecm from https://github.com/edgego/ecm/releases/tag/V1.1.0
 2. get ssh key with command: ssh-keygen -t rsa 
 3. Run with command line:
   create edge cloud:
