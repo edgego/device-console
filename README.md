@@ -75,7 +75,7 @@ Alternative simple way to install:
  ![image](https://github.com/edgego/device-console/assets/80612608/4576c480-310a-479c-8774-e0e403d934c6)
 
 
-Device center provide functions such as add device , delete device . update device , bulk import devcices ,test device and monitor device.
+Device center provide features such as add device , delete device . update device , bulk import devcices ,test device and monitor device.
 
 ![image](https://github.com/edgego/device-console/assets/80612608/e0e26df3-742a-4235-9120-a05fa3bcc962)
 
