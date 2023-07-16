@@ -59,7 +59,7 @@ Alternative simple way to install:
 
    ![image](https://github.com/edgego/device-console/assets/80612608/217f48f7-33f5-4be8-950b-77a77801cf4e)
         
- From Device dashboard, all devices with satellite location can be found from the map. 
+ From dashboard, all devices with satellite location can be found from the map. 
  
      -  Query device with name 
      -  Check device status by different color
@@ -75,12 +75,12 @@ Alternative simple way to install:
  ![image](https://github.com/edgego/device-console/assets/80612608/4576c480-310a-479c-8774-e0e403d934c6)
 
 
-Device dashboard provide functions such as add device , delete device . update device , bulk import devcices ,test device and monitor device.
+Device center provide functions such as add device , delete device . update device , bulk import devcices ,test device and monitor device.
 
 ![image](https://github.com/edgego/device-console/assets/80612608/e0e26df3-742a-4235-9120-a05fa3bcc962)
 
 
-Rule Engine dashboard operate data streams  easily
+Operate data streams  easily
 
 ![image](https://github.com/edgego/device-console/assets/80612608/aa9cd148-9bec-4559-939b-b5635ff9a632)
 
