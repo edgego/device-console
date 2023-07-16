@@ -54,8 +54,8 @@ Alternative simple way to install:
      <img width="1152" alt="ddd1" src="https://user-images.githubusercontent.com/80612608/187816142-38e4f8df-e849-492e-9504-99b64bca8c9b.png">
 
  Device dashbaord Overview
-     Edge device console easily manage all device metadata : profiles, device services , devices, application services. Can onlime deploy and undeploy device services and application services.
-  From device dashboard can check all devices' operating state and admin state.
+     Edge device console easily manage all devices' metadata : profiles, device services , devices, application services. Online deploy and undeploy device services and application services.
+  From device dashboard also check all devices' operating state and admin state.
 
    ![image](https://github.com/edgego/device-console/assets/80612608/217f48f7-33f5-4be8-950b-77a77801cf4e)
         
@@ -65,12 +65,12 @@ Alternative simple way to install:
      -  Check device status by different color
      -  Check all autoevents throughput , or individual autoevent
     
-  Monitor device's autoevent:
+ Monitor device's autoevent:
   
   ![image](https://github.com/edgego/device-console/assets/80612608/b90250f7-133b-4614-a775-85a116930bca)
 
 
-  Device service dashboard can deploy or undeploy device service online
+  Deploy or undeploy device service online
   
  ![image](https://github.com/edgego/device-console/assets/80612608/4576c480-310a-479c-8774-e0e403d934c6)
 
