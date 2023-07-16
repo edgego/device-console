@@ -31,28 +31,6 @@ Install steps:
 6. config contour ingress:
   kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/ingress.yml
 
-Alternative simple way to install:
-
-1. download ecm from https://github.com/edgego/ecm/releases/tag/V1.1.0
-2. get ssh key with command: ssh-keygen -t rsa 
-3. Run with command line:
-  create edge cloud:
-     ecm_win-amd64.exe  -d create \
-     --region edge cloud location \
-     --cluster \
-     --enable dashboard edge-redis\
-     --name demo-test \
-     --ssh-user root \
-     --ssh-password ****** \
-     --ssh-port 22 \
-     --master-ips 192.168.1.151
-     
-     or 
-     
-     Run with ui:  ecm -d serve --bind-port 8080
-     
-     <img width="1152" alt="ddd1" src="https://user-images.githubusercontent.com/80612608/187816142-38e4f8df-e849-492e-9504-99b64bca8c9b.png">
-
  Device dashbaord Overview
      Edge device console easily manage all devices' metadata : profiles, device services , devices, application services. Online deploy and undeploy device services and application services.
   From device dashboard also check all devices' operating state and admin state.
