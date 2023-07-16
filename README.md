@@ -79,6 +79,9 @@ Device center provide features such as add device , delete device . update devic
 
 ![image](https://github.com/edgego/device-console/assets/80612608/e0e26df3-742a-4235-9120-a05fa3bcc962)
 
+Bulk import devices
+
+<img width="1870" alt="image" src="https://github.com/edgego/device-console/assets/80612608/2956335a-505e-4c6a-881c-b888c96f11ef">
 
 Operate data streams  easily
 
