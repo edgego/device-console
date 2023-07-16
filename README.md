@@ -88,7 +88,9 @@ Operate data streams  easily
 ![image](https://github.com/edgego/device-console/assets/80612608/aa9cd148-9bec-4559-939b-b5635ff9a632)
 
 Define or update rule 
-
+  input sql statement 
+  define one or more sinks
+  
 <img width="1870" alt="image" src="https://github.com/edgego/device-console/assets/80612608/f9fb5820-807c-4436-afda-5cd337f688b3">
 
 App Service center provide function to define applications with builtins ,such as export data via http or mqtt. Deploy or undeploy applications online.
