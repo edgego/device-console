@@ -91,7 +91,8 @@ Define or update rule
 
 <img width="1870" alt="image" src="https://github.com/edgego/device-console/assets/80612608/f9fb5820-807c-4436-afda-5cd337f688b3">
 
-App Service center provide function to operate data with buildin functions and export data via http or mqtt.
+App Service center provide function to define applications with builtins ,such as export data via http or mqtt. Deploy or undeploy applications online.
+
 ![image](https://github.com/edgego/device-console/assets/80612608/395a051a-4220-4029-8028-7862032c833d)
 
 
