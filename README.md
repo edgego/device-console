@@ -84,8 +84,7 @@ Rule Engine dashboard can operate data stream and rule easily
 
 ![image](https://github.com/edgego/device-console/assets/80612608/aa9cd148-9bec-4559-939b-b5635ff9a632)
 
-![image](https://github.com/edgego/device-console/assets/80612608/9f296ae8-640f-4943-a80b-b5bb305062cd)
-
+<img width="1870" alt="image" src="https://github.com/edgego/device-console/assets/80612608/f9fb5820-807c-4436-afda-5cd337f688b3">
 
 App Service dashboard provide function to operate data with buildin functions and export data via http or mqtt.
 ![image](https://github.com/edgego/device-console/assets/80612608/395a051a-4220-4029-8028-7862032c833d)
