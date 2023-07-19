@@ -25,12 +25,8 @@ Install steps:
 3. install edge console :
    kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/edge-system-redis-localpath.yaml
 4. install monitor module :
-   kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/monitoring.yml
-5. install contour
-   kubectl apply -f https://projectcontour.io/quickstart/contour.yaml  
-6. config contour ingress:
-  kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/ingress.yml
-
+   kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/edge-monitoring.yml
+   
  Device dashbaord Overview
      Edge device console easily manage all devices' metadata : profiles, device services , devices, application services. Online deploy and undeploy device services and application services.
   From device dashboard also check all devices' operating state and admin state.
