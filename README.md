@@ -26,6 +26,8 @@ Install steps:
    kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/edge-system-redis-localpath.yaml
 4. install monitor module :
    kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/edge-monitoring.yml
+5. install kubernetes dashboard
+    kubectl apply -f https://github.com/edgego/edge-console/blob/main/scripts/edge-dashboard.yml
    
  Device dashbaord Overview
      Edge device console easily manage all devices' metadata : profiles, device services , devices, application services. Online deploy and undeploy device services and application services.
