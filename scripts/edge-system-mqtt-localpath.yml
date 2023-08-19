@@ -71,7 +71,9 @@ metadata:
   namespace: edge-system
 data:
   configuration.toml: >
-    ScheduleIntervalTime = 500
+    ScheduleIntervalTime = 500 
+
+    RequireMessageBus = true
 
 
     [Writable]
@@ -103,7 +105,7 @@ data:
     request body in bytes
 
     RequestTimeout = '5s'
-    
+
       [Service.CORSConfiguration]
 
       EnableCORS = false
@@ -170,6 +172,33 @@ data:
       [SecretStore.Authentication]
       AuthType = 'X-Vault-Token'
 
+    [MessageQueue]
+      Protocol = "tcp"
+      Host = "edge-mqtt-broker"
+      Port = 1883
+      Type = "mqtt"
+      AuthMode = "usernamepassword"  # required for mqtt messagebus (secure or insecure).
+      SecretName = "redisdb"
+     [MessageQueue.Optional]
+      # Default MQTT Specific options that need to be here to enable evnironment variable overrides of them
+        ClientId ="support-scheduler"
+        Qos = "0" # Quality of Sevice values are 0 (At most once), 1 (At least once) or 2 (Exactly once)
+        KeepAlive = "10" # Seconds (must be 2 or greater)
+        Retained = "false"
+        AutoReconnect = "true"
+        ConnectTimeout = "5" # Seconds
+        SkipCertVerify = "false"      
+        
+      [Writable.Telemetry]
+        Interval = "0s"
+        PublishTopicPrefix  = "edgex/telemetry" # /<service-name>/<metric-name> will be added to this Publish Topic prefix
+        [Writable.Telemetry.Metrics] # All service's metric names must be present in this list.
+         # Common Security Service Metrics
+          SecuritySecretsRequested = false
+          SecuritySecretsStored = false
+          SecurityConsulTokensRequested = false
+          SecurityConsulTokenDuration = false
+          [Writable.Telemetry.Tags] # Contains the service level tags to be attached to all the service's metrics
 ---
 kind: ConfigMap
 apiVersion: v1
@@ -178,9 +207,16 @@ metadata:
   namespace: edge-system
 data:
   configuration.toml: >
+    RequireMessageBus = true
+
     [Writable]
 
-    LogLevel = 'INFO'
+     LogLevel = 'DEBUG'
+     [Writable.ProfileChange]
+      StrictDeviceProfileChanges = false
+      StrictDeviceProfileDeletes = false
+      [Writable.UoM]
+        Validation = true
       [Writable.InsecureSecrets]
         [Writable.InsecureSecrets.DB]
         path = "redisdb"
@@ -207,7 +243,7 @@ data:
     request body in bytes
 
     RequestTimeout = '5s'
-    
+
     [Service.CORSConfiguration]
       EnableCORS = false
       CORSAllowCredentials = false
@@ -217,6 +253,8 @@ data:
       CORSExposeHeaders = "Cache-Control, Content-Language, Content-Length, Content-Type, Expires, Last-Modified, Pragma, X-Correlation-ID"
       CORSMaxAge = 3600
 
+    [UoM]
+      UoMFile = "/res/uom/uom.toml"
 
     [Registry]
 
@@ -282,6 +320,53 @@ data:
     ServerName = ''
       [SecretStore.Authentication]
       AuthType = 'X-Vault-Token'
+      
+    [MessageQueue] 
+     Protocol = "tcp"
+     Host = "edge-mqtt-broker"
+     Port = 1883
+     Type = "mqtt"
+     AuthMode = "usernamepassword"  # required for mqtt messagebus (secure or insecure).
+     SecretName = "redisdb"
+     PublishTopicPrefix = "edgex/system-events" 
+     [MessageQueue.Optional]
+      ClientId ="core-metadata"
+      Qos = "0" # 
+      KeepAlive = "10" 
+      Retained = "false"
+      AutoReconnect = "true"
+      ConnectTimeout = "5" # Seconds
+      SkipCertVerify = "false"
+
+    [Writable.Telemetry]
+      Interval = "0s"
+      PublishTopicPrefix  = "edgex/telemetry" # /<service-name>/<metric-name> will be added to this Publish Topic prefix
+    [Writable.Telemetry.Metrics] 
+      SecuritySecretsRequested =false 
+      
+      SecuritySecretsStored = false 
+      
+      SecurityConsulTokensRequested = false
+      
+      SecurityConsulTokenDuration = false 
+      
+      [Writable.Telemetry.Tags]
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: edge-metadata-uom
+  namespace: edge-system
+data:
+  uom.toml: |
+    Source="reference to source for all UoM if not specified below"
+    [Units]
+      [Units.temperature]
+        Source="www.weather.com"
+        Values=["C","F","K"]
+      [Units.weights]
+        Source="www.usa.gov/federal-agencies/weights-and-measures-division"
+        Values=["lbs","ounces","kilos","grams"]
 ---
 kind: ConfigMap
 apiVersion: v1
@@ -290,24 +375,25 @@ metadata:
   namespace: edge-system
 data:
   configuration.toml: >-
+
+    RequireMessageBus = true
+
     [Writable]
-
-    LogLevel = 'INFO'
-
-    ResendLimit = 2
-
-    ResendInterval = '5s'
+      LogLevel = 'INFO'
+      ResendLimit = 2
+      ResendInterval = '5s'
+      
       [Writable.InsecureSecrets]
         [Writable.InsecureSecrets.DB]
-        path = "redisdb"
+          path = "redisdb"
           [Writable.InsecureSecrets.DB.Secrets]
-          username = ""
-          password = ""
+            username = ""
+            password = ""
         [Writable.InsecureSecrets.SMTP]
-        path = "smtp"
-          [Writable.InsecureSecrets.SMTP.Secrets]
-          username = "username@mail.example.com"
-          password = ""
+           path = "smtp"
+           [Writable.InsecureSecrets.SMTP.Secrets]
+             username = "username@mail.example.com"
+             password = ""
 
     [Service]
 
@@ -328,7 +414,7 @@ data:
     request body in bytes
 
     RequestTimeout = '5s'
-    
+
     [Service.CORSConfiguration]
       EnableCORS = false
       CORSAllowCredentials = false
@@ -358,7 +444,7 @@ data:
     [Smtp]
       Host = 'smtp.gmail.com'
       Port = 587
-      Sender = 'tian.jacky@gmail.com'
+      Sender = 'xxx@gmail.com'
       EnableSelfSignedCert = false
       Subject = 'EdgeX Notification'
       # SecretPath is used to specify the secret path to store the credential(username and password) for connecting the SMTP server
@@ -387,6 +473,34 @@ data:
     ServerName = ''
       [SecretStore.Authentication]
       AuthType = 'X-Vault-Token'
+      
+    [MessageQueue] 
+     Protocol = "tcp"
+     Host = "edge-mqtt-broker"
+     Port = 1883
+     Type = "mqtt"
+     AuthMode = "usernamepassword"  # required for mqtt messagebus (secure or insecure).
+     SecretName = "redisdb"
+     [MessageQueue.Optional]
+      ClientId ="support-notifications"
+      Qos = "0" # 
+      KeepAlive = "10" 
+      Retained = "false"
+      AutoReconnect = "true"
+      ConnectTimeout = "5" # Seconds
+      SkipCertVerify = "false"
+
+    [Writable.Telemetry]
+      Interval = "0s"
+      PublishTopicPrefix  = "edgex/telemetry" # /<service-name>/<metric-name> will be added to this Publish Topic prefix
+    [Writable.Telemetry.Metrics] 
+      SecuritySecretsRequested =false 
+      
+      SecuritySecretsStored = false 
+      
+      SecurityConsulTokensRequested = false
+      
+      SecurityConsulTokenDuration = false 
 ---
 kind: ConfigMap
 apiVersion: v1
@@ -424,7 +538,7 @@ data:
     request body in bytes
 
     RequestTimeout = '45s'
-    
+
     [Service.CORSConfiguration]
       EnableCORS = false
       CORSAllowCredentials = false
@@ -479,6 +593,34 @@ data:
     ServerName = ''
       [SecretStore.Authentication]
       AuthType = 'X-Vault-Token'
+      
+    [MessageQueue] 
+     Protocol = "tcp"
+     Host = "edge-mqtt-broker"
+     Port = 1883
+     Type = "mqtt"
+     AuthMode = "usernamepassword"  # required for mqtt messagebus (secure or insecure).
+     SecretName = "redisdb"
+     [MessageQueue.Optional]
+      ClientId ="edge-core-command"
+      Qos = "0" # 
+      KeepAlive = "10" 
+      Retained = "false"
+      AutoReconnect = "true"
+      ConnectTimeout = "5" # Seconds
+      SkipCertVerify = "false"
+
+    [Writable.Telemetry]
+      Interval = "0s"
+      PublishTopicPrefix  = "edgex/telemetry" # /<service-name>/<metric-name> will be added to this Publish Topic prefix
+    [Writable.Telemetry.Metrics] 
+      SecuritySecretsRequested =false 
+      
+      SecuritySecretsStored = false 
+      
+      SecurityConsulTokensRequested = false
+      
+      SecurityConsulTokenDuration = false 
 ---
 kind: ConfigMap
 apiVersion: v1
@@ -487,106 +629,110 @@ metadata:
   namespace: edge-system
 data:
   configuration.toml: |-
-   [Service]
-    Host = "device-dashboard"
-    Port = 4000
-    Labels = []
-    OpenMsg = "edge console started"
-    StaticResourcesPath = "./www"
+    [Service]
+     Host = "device-dashboard"
+     Port = 4000
+     Labels = []
+     OpenMsg = "edge console started"
+     StaticResourcesPath = "./www"
 
-    #Using an default memory db automatically if not configed here.
-    [Database]
-    Host = ""
-    Name = ""
-    Port = 0
-    Username = "su"
-    Password = "su"
-      [Database.Scheme]
-      User = "user"
-      
-      [MQTTBroker]
-         Schema="tcp"
-         Host="192.168.1.244"
-         Port=1883
-         Qos=0
-         KeepAlive=3600
-         IncomingTopic="DataTopic"
-         ResponseTopic="ResponseTopic"
-
-    [Clients]
-        [Clients.CoreData]
-        Protocol = 'http'
-        Host = 'edge-core-data'
-        Port = 59880
-        PathPrefix = "/coredata"
-
-        [Clients.Metadata]
-        Protocol = 'http'
-        Host = 'edge-core-metadata'
-        Port = 59881
-        PathPrefix = "/metadata"
-
-        [Clients.CoreCommand]
-        Protocol = 'http'
-        Host = 'edge-core-command'
-        Port = 59882
-        PathPrefix = "/command"
-
-        [Clients.Notification]
-        Protocol = 'http'
-        Host = 'edge-support-notifications'
-        Port = 59860
-        PathPrefix = "/notification"
-
-        [Clients.Scheduler]
-        Protocol = 'http'
-        Host = 'edge-support-scheduler'
-        Port = 59861
-        PathPrefix = "/scheduler"
-
-        [Clients.RuleEngine]
-        Protocol = 'http'
-        Host = 'edge-kuiper'
-        Port = 59720
-        PathPrefix = "/rule-engine"
-
-        [Clients.AppService]
-        Protocol = 'http'
-        Host = 'edge-app-rules-engine'
-        Port = 59701
-        PathPrefix = "/app-service"
-        
-     [Deploy]
-       Namespace = 'edge-system'
-       Image = 'edgego/app-service-configurable:v2.2.0'
-       Target ='kubernetes'
-       Host = ''
-       User = ''
-       Password = ''
+     #Using an default memory db automatically if not configed here.
+     [Database]
+     Host = ""
+     Name = ""
+     Port = 0
+     Username = "su"
+     Password = "su"
+       [Database.Scheme]
+       User = "user"
        
-    [AppService]
-      LogLevel = "INFO"
-      StoreAndForward = true
-      RetryInterval = "5s"
-      MaxRetryCount = 10
-      Host = 'edge-redis-ha-announce-0'
-      Port=6379
-      Password = ''
-      Username = ''
-      PublishTopic = "test"
-
-    [Registry]
-    Host = "edge-core-consul"
-    Port = 8500
-    Type = "consul"
-    ConfigRegistryStem="edgex/appservices/"
-    ServiceVersion="2.0"
-
-    [MessageBus]
-      Host = "edge-mqtt-broker"
-      Port = 1883
-      Type = "mqtt"
+       [MQTTBroker]
+          Schema="tcp"
+          Host="edge-mqtt-broker"
+          Port=1883
+          Qos=0
+          KeepAlive=3600
+          IncomingTopic="DataTopic"
+          ResponseTopic="ResponseTopic"
+          
+       [DeviceServices]
+          Names = ["device-modbus","device-opcua","device-mqtt","device-snmp","device-rest","device-rfid-llrp","device-onvif-camera"]
+          Images= ["edgego/device-modbus:v2.3.0","edgego/device-opcua:v2.3.0","edgego/device-mqtt:v2.3.0","edgego/device-snmp:v2.3.0","edgego/device-rest:v2.3.0","edgego/device-rfid-llrp:v2.3.0","edgego/device-onvif-camera:v2.3.0"]
       
+       [CustomAppServices]
+         Names = ["app-face-detect","app-caffe-classifier"]
+         Images =["edgego/app-face-detect:v2.3.0","edgego/app-caffe-classifier:v2.2.0"]
+        
+       [Clients]
+         [Clients.CoreData]
+         Protocol = 'http'
+         Host = 'edge-core-data'
+         Port = 59880
+         PathPrefix = "/coredata"
+
+         [Clients.Metadata]
+         Protocol = 'http'
+         Host = 'edge-core-metadata'
+         Port = 59881
+         PathPrefix = "/metadata"
+
+         [Clients.CoreCommand]
+         Protocol = 'http'
+         Host = 'edge-core-command'
+         Port = 59882
+         PathPrefix = "/command"
+
+         [Clients.Notification]
+         Protocol = 'http'
+         Host = 'edge-support-notifications'
+         Port = 59860
+         PathPrefix = "/notification"
+
+         [Clients.Scheduler]
+         Protocol = 'http'
+         Host = 'edge-support-scheduler'
+         Port = 59861
+         PathPrefix = "/scheduler"
+
+         [Clients.RuleEngine]
+         Protocol = 'http'
+         Host = 'edge-kuiper'
+         Port = 59720
+         PathPrefix = "/rule-engine"
+
+         [Clients.AppService]
+         Protocol = 'http'
+         Host = 'edge-app-rules-engine'
+         Port = 59701
+         PathPrefix = "/app-service"
+         
+      [Deploy]
+        Namespace = 'edge-system'
+        Image = 'edgego/app-service-configurable:v2.3.0'
+        Target ='kubernetes'
+        Host = ''
+        User = ''
+        Password = ''
+        
+       [Registry]
+         Host = "edge-core-consul"
+         Port = 8500
+         Type = "consul"
+         ConfigRegistryStem="edgex/appservices/"
+         ServiceVersion="2.0"
+
+     [MessageBus]
+       Host = "edge-mqtt-broker"
+       Port = 1883
+       Type = "mqtt"
+       [MessageBus.Optional]
+         ClientId = "ekuiper" # must be unique name of the service, thus the service key (app-rule-engine, etc) is used
+         Qos = 0 # Quality of Sevice values are 0 (At most once), 1 (At least once) or 2 (Exactly once)
+         KeepAlive = 500 # Seconds (must be 2 or greater)
+         Retained  = false
+         #AutoReconnect = true
+         #ConnectTimeout = 5 # Seconds
+         SkipCertVerify = true
 ---
 kind: ConfigMap
 apiVersion: v1
@@ -595,17 +741,33 @@ metadata:
   namespace: edge-system
 data:
   configuration.toml: >-
+    MaxEventSize = 25000  # Defines the maximum event size in kilobytes
+
     [Writable]
-
-    PersistData = true
-
-    LogLevel = 'DEBUG'
+        PersistData = true 
+        LogLevel = 'INFO'
+        
        [Writable.InsecureSecrets]
           [Writable.InsecureSecrets.DB]
              path = "redisdb"
                 [Writable.InsecureSecrets.DB.Secrets]
                 username = ""
                 password = ""
+                
+    [Writable.Telemetry]
+      Interval = "0s"
+      PublishTopicPrefix  = "edgex/telemetry" # /<service-name>/<metric-name> will be added to this Publish Topic prefix
+      [Writable.Telemetry.Metrics] # All service's metric names must be present in this list.
+       # Core Data Service Metrics
+        EventsPersisted = false
+        ReadingsPersisted = false
+        # Common Security Service Metrics
+        SecuritySecretsRequested = false
+        SecuritySecretsStored = false
+        SecurityConsulTokensRequested = false
+        SecurityConsulTokenDuration = false
+       [Writable.Telemetry.Tags] # Contains the service level tags to be attached to all the service's metrics
+       #    Gateway="my-iot-gateway" # Tag must be added here or via Consul Env Override can only chnage existing value, not added new ones.
 
     [Service]
 
@@ -615,7 +777,8 @@ data:
 
     Port = 59880
 
-    ServerBindAddr = '0.0.0.0' # Leave blank so default to Host value unless different value is needed.
+    ServerBindAddr = '0.0.0.0' # Leave blank so default to Host value unless
+    different value is needed.
 
     StartupMsg = 'Core Data Microservice started'
 
@@ -625,7 +788,7 @@ data:
     request body in bytes
 
     RequestTimeout = '5s'
-    
+
     [Service.CORSConfiguration]
       EnableCORS = false
       CORSAllowCredentials = false
@@ -643,23 +806,7 @@ data:
 
     Type = 'consul'
 
-    [MQTTBroker]
-         Schema="tcp"
-         Host="edge-mqtt-broker"
-         Port=1883
-         Qos=0
-         KeepAlive=3600
-         IncomingTopic="DataTopic"
-         ResponseTopic="ResponseTopic"
-         
-      [DeviceServices]
-         Names = ["device-modbus","device-opcua","device-mqtt","device-snmp","device-rest","device-rfid-llrp","device-onvif-camera"]
-         Images= ["edgego/device-modbus:v2.3.0","edgego/device-opcua:v2.3.0","edgego/device-mqtt:v2.3.0","edgego/device-snmp:v2.3.0","edgego/device-rest:v2.3.0","edgego/device-rfid-llrp:v2.3.0","edgego/device-onvif-camera:v2.3.0"]
-     
-      [CustomAppServices]
-        Names = ["app-detect-face","app-caffe-classifier"]
-        Images =["edgego/app-detect-face:v2.2.0","edgego/app-caffe-classifier:v2.2.0"]
-        
+
     [Clients]
       [Clients.core-metadata]
       Protocol = 'http'
@@ -690,11 +837,11 @@ data:
 
     RootCaCertPath = ''
 
-    ServerName = ''
+     ServerName = ''
       [SecretStore.Authentication]
-      AuthType = 'X-Vault-Token'
+      AuthType = 'X-Vault-Token' 
       
-    [MessageQueue]
+     [MessageQueue]
       Protocol = "tcp"
       Host = "edge-mqtt-broker"
       Port = 1883
@@ -705,17 +852,13 @@ data:
       SubscribeEnabled = true
       SubscribeTopic = "edgex/events/device/#"  # required for subscribing to Events from MessageBus
       [MessageQueue.Optional]
-          # Default MQTT Specific options that need to be here to enable evnironment variable overrides of them
-          # Client Identifiers
-          ClientId ="core-data"
-          # Connection information
-          Qos          =  "0" # Quality of Sevice values are 0 (At most once), 1 (At least once) or 2 (Exactly once)
-          KeepAlive    =  "10" # Seconds (must be 2 or greater)
-          Retained     = "false"
-          AutoReconnect  = "true"
-          ConnectTimeout = "5" # Seconds
-          # TLS configuration - Only used if Cert/Key file or Cert/Key PEMblock are specified
-          SkipCertVerify = "false"
+        ClientId ="core-data"
+        Qos =  "0" # Quality of Sevice values are 0 (At most once), 1 (At least once) or 2 (Exactly once)
+        KeepAlive = "10" # Seconds (must be 2 or greater)
+        Retained = "false"
+        AutoReconnect = "true"
+        ConnectTimeout = "5" # Seconds
+        SkipCertVerify = "false"
 ---
 apiVersion: v1
 kind: Service
@@ -758,7 +901,7 @@ spec:
             claimName: device-dashboard-claim
       containers:
         - name: device-dashboard
-          image: edgego/device-dashboard:v2.3.6
+          image: edgego/device-dashboard:v2.3.8
           imagePullPolicy: Always
           ports:
             - containerPort: 4000
@@ -1140,7 +1283,7 @@ spec:
       serviceAccountName: edge-redis-ha
       initContainers:
       - name: config-init
-        image: redis:6.2.7-alpine
+        image: redis:6.2.13-alpine
         imagePullPolicy: IfNotPresent
         resources:
           {}
@@ -1163,7 +1306,7 @@ spec:
           mountPath: /data
       containers:
       - name: redis
-        image: redis:6.2.7-alpine
+        image: redis:6.2.13-alpine
         imagePullPolicy: IfNotPresent
         command:
         - redis-server
@@ -1182,7 +1325,7 @@ spec:
         - mountPath: /data
           name: data
       - name: sentinel
-        image: redis:6.2.7-alpine
+        image: redis:6.2.13-alpine
         imagePullPolicy: IfNotPresent
         command:
           - redis-sentinel
@@ -1260,7 +1403,7 @@ metadata:
 spec:
   containers:
   - name: "edge-service-test"
-    image: redis:6.2.7-alpine
+    image: redis:6.2.13-alpine
     command:
       - sh
       - -c
@@ -1305,7 +1448,7 @@ spec:
             name: edge-support-notifications
       containers:
         - name: edge-support-notifications
-          image: edgego/support-notifications:v2.2.0
+          image: edgego/support-notifications:v2.3.0
           command:
             - /support-notifications
             - '--confdir'
@@ -1372,7 +1515,7 @@ spec:
             name: edge-core-data
       containers:
         - name: edge-core-data
-          image: edgego/core-data:v2.2.0
+          image: edgego/core-data:v2.3.0
           command:
             - /core-data
             - '--confdir'
@@ -1436,9 +1579,12 @@ spec:
         - name: config
           configMap:
             name: edge-core-metadata
+        - name: uom
+          configMap:
+            name: edge-metadata-uom
       containers:
         - name: edge-core-metadata
-          image: edgego/core-metadata:v2.2.0
+          image: edgego/core-metadata:v2.3.0
           command:
             - /core-metadata
             - '--confdir'
@@ -1449,6 +1595,8 @@ spec:
           volumeMounts:
              - name: config
                mountPath: /res
+             - name: uom
+               mountPath: /res/uom
           ports:
             - containerPort: 59881
           readinessProbe:
@@ -1502,7 +1650,7 @@ spec:
             name: edge-core-command
       containers:
         - name: edge-core-command
-          image: edgego/core-command:v2.2.0
+          image: edgego/core-command:v2.3.0
           command:
             - /core-command
             - '--confdir'
@@ -1567,7 +1715,7 @@ spec:
             name: edge-support-scheduler
       containers:
         - name: edge-support-scheduler
-          image: edgego/support-scheduler:v2.2.0
+          image: edgego/support-scheduler:v2.3.0
           command:
             - /support-scheduler
             - '--confdir'
@@ -1602,12 +1750,11 @@ metadata:
 data:
   connection.yaml: |-
     edgex:
-       redisMsgBus: #connection key
-          protocol: redis
-          server: edge-redis-ha-announce-0
-          port: 6379
-          type: redis
-
+       mqttMsgBus: #connection key
+          protocol: tcp
+          server: edge-mqtt-broker
+          port: 1883
+          type: mqtt
     mqtt:
       localConnection: #connection key
         servers: [tcp://127.0.0.1:1883]
@@ -1628,8 +1775,6 @@ data:
         #rootCaPath: /var/kuiper/xyz-rootca.pem
         #insecureSkipVerify: false
         #protocolVersion: 3
-
-
     edgex:
        mqttMsgBus: #mqtt connection key
         protocol: tcp
@@ -1671,64 +1816,26 @@ metadata:
   namespace: edge-system
 data:
   edgex.yaml: |
-    app1:
-        messageType: event
-        port: 6379
-        protocol: redis
-        server: edge-redis-ha-announce-0
-        topic: app1-rules-event
-        type: redis
-    app2:
-        messageType: event
-        port: 6379
-        protocol: redis
-        server: edge-redis-ha-announce-0
-        topic: app2-rules-event
-        type: redis
-    app3:
-        messageType: event
-        port: 6379
-        protocol: redis
-        server: edge-redis-ha-announce-0
-        topic: app3-rule-events
-        type: redis
     default:
-        messageType: request
-        port: 6379
-        protocol: redis
-        server: edge-redis-ha-announce-0
-        topic: edgex/events/device#
-        type: redis
-    demo1:
-        messageType: request
-        port: 6379
-        protocol: redis
-        server: edge-redis-ha-announce-0
-        topic: edgex/events/device/Test-Device-Modbus-Profile/modbus-tcp#
-        type: redis
-    demo2:
-        messageType: event
-        port: 6379
-        protocol: redis
-        server: edge-redis-ha-announce-0
-        topic: rules-events
-        type: redis
-    demo3:
-        messageType: request
-        port: 6379
-        protocol: redis
-        server: edge-redis-ha-announce-0
-        topic: edgex/events/device/Test-Device-Modbus-Profile/modbus-tcp#
-        type: redis
+       messageType: request
+       port: 1883
+       protocol: tcp
+       server: edge-mqtt-broker
+       topic: edgex/events/device#
+       type: mqtt
+       optional:
+         KeepAlive: 10
+         Qos: 0
+         Retained: false
+         SkipCertVerify: false
     share_conf:
-        connectionSelector: edgex.mqttMsgBus
-        messageType: event
-        port: 1883
-        protocol: tcp
-        server: 192.168.1.244
-        topic: events
-        type: mqtt
-
+       connectionSelector: edgex.mqttMsgBus
+       messageType: event
+       port: 1883
+       protocol: tcp
+       server: 192.168.1.244
+       topic: events
+       type: mqtt
 ---
 kind: ConfigMap
 apiVersion: v1
@@ -1882,7 +1989,7 @@ spec:
             claimName: edge-kuiper-claim
       containers:
         - name: edge-kuiper
-          image: lfedge/ekuiper:1.6.0-alpine
+          image: lfedge/ekuiper:1.10.2-alpine
           ports:
             - containerPort: 59720
               protocol: TCP
@@ -2130,7 +2237,7 @@ spec:
             name: app-service-configurable
       containers:
         - name: app-service-configurable
-          image: edgego/app-service-configurable:v2.2.0
+          image: edgego/app-service-configurable:v2.3.0
           command:
             - /app-service-configurable
             - '--confdir'
