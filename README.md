@@ -1,10 +1,10 @@
 # Edge Device Console Over Kubernetes
 
- Edge Device Console is designed for industry edge cloud , a small and low cost tool easy to  manager industry edge devices.  Edge Device Dashboard can run on different platform(x86-amd64, arm,arm64), support winows, linux ,Mac OS.
+ Edge Device Console is designed for industry edge cloud , a small and low cost tool easy to  manager industry edge devices.  Edge Device Dashboard can run on different platform(x86-amd64, arm,arm64,risc0v64), support winows, linux ,Mac OS.
 
 ## Key Features
 
-- Cross platform, Edge Device Dashboard  can create edge cloud on amd64,arm64,arm device. 
+- Cross platform, Edge Device Dashboard can create edge cloud on amd64,arm64,arm device. 
 - Edge Device Dashboard  support english and simple chinese language, according to browswer's language setting.
 - Low cost,low carbon, small memory size(500Mi or above) and hard disk size.
 - Simplify operations by UI dashboard.
