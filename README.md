@@ -4,7 +4,7 @@
 
 ## Key Features
 
-- Cross platform, Edge Device Dashboard can create edge cloud on amd64,arm64,arm device. 
+- Cross platform, Edge Device Dashboard can create edge cloud on amd64,arm64,arm and RISC-v 64 devices. 
 - Edge Device Dashboard  support english and simple chinese language, according to browswer's language setting.
 - Low cost,low carbon, small memory size(500Mi or above) and hard disk size.
 - Simplify operations by UI dashboard.
