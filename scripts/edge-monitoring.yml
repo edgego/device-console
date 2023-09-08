@@ -2821,7 +2821,7 @@ spec:
             defaultMode: 420
       containers:
         - name: grafana
-          image: grafana/grafana:8.2.5
+          image: edgego/grafana:v8.2.5
           ports:
             - containerPort: 3000
               protocol: TCP
@@ -2961,7 +2961,7 @@ spec:
             defaultMode: 420
       containers:
         - name: prometheus-server
-          image: prom/prometheus:v2.45.0
+          image: edgego/prometheus:v2.46.0
           args:
             - '--config.file=/etc/prometheus/config/prometheus.yml'
             - '--storage.tsdb.path=/prometheus'
