@@ -234,7 +234,7 @@ data:
 
     ServerBindAddr = '0.0.0.0' # Leave blank so default to Host value unless different value is needed.
 
-    StartupMsg = 'This is the EdgeX Core Metadata Microservice'
+    StartupMsg = 'This is the Edge Core Metadata Microservice'
 
     MaxResultCount = 50000
 
@@ -372,7 +372,8 @@ metadata:
   namespace: edge-system
 data:
   configuration.toml: >-
-    RequireMessageBus = true
+    RequireMessageBus = true 
+
     [Writable]
 
     LogLevel = 'INFO'
@@ -400,16 +401,18 @@ data:
 
     Port = 59860
 
-    ServerBindAddr = '0.0.0.0' # Leave blank so default to Host value unless different value is needed.
+    ServerBindAddr = '0.0.0.0' # Leave blank so default to Host value unless
+    different value is needed.
 
     StartupMsg = 'This is the Support Notifications Microservice'
 
     MaxResultCount = 50000
 
-    MaxRequestSize = 0 # Not curently used. Defines the maximum size of http request body in bytes
+    MaxRequestSize = 0 # Not curently used. Defines the maximum size of http
+    request body in bytes
 
     RequestTimeout = '5s'
-    
+
     [Service.CORSConfiguration]
       EnableCORS = false
       CORSAllowCredentials = false
@@ -496,8 +499,7 @@ data:
           SecuritySecretsStored = false
           SecurityConsulTokensRequested = false
           SecurityConsulTokenDuration = false
-          [Writable.Telemetry.Tags] # Contains the service level tags to be attached to all the service's metrics
-      
+          [Writable.Telemetry.Tags] # Contains the service level tags to be attached to all the service's metrics    
 ---
 kind: ConfigMap
 apiVersion: v1
@@ -726,11 +728,11 @@ data:
       [MessageBus.Optional]
         ClientId ="dashboard" # must be unique name of the service, thus the service key (app-rule-engine, etc) is used
         Format =  "nats" # Use 'json' for backward compatability with services using MQTT
-        ConnectTimeout = "5" # Seconds
-        RetryOnFailedConnect = "true"
+        ConnectTimeout = 5 # Seconds
+        RetryOnFailedConnect = true
         QueueGroup = "" 
         Durable =  "" # Jetstream only
-        AutoProvision = "true" # Jetstream only
+        AutoProvision = true # Jetstream only
         Deliver = "new" # Jetstream only   
 ---
 kind: ConfigMap
@@ -1283,7 +1285,7 @@ spec:
       serviceAccountName: edge-redis-ha
       initContainers:
       - name: config-init
-        image: redis:6.2.13-alpine
+        image: edgego/redis:6.2.13
         imagePullPolicy: IfNotPresent
         resources:
           {}
@@ -1306,7 +1308,7 @@ spec:
           mountPath: /data
       containers:
       - name: redis
-        image: redis:6.2.13-alpine
+        image: edgego/redis:6.2.13
         imagePullPolicy: IfNotPresent
         command:
         - redis-server
@@ -1325,7 +1327,7 @@ spec:
         - mountPath: /data
           name: data
       - name: sentinel
-        image: redis:6.2.13-alpine
+        image: edgego/redis:6.2.13
         imagePullPolicy: IfNotPresent
         command:
           - redis-sentinel
@@ -1362,35 +1364,6 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: edge-redis-ha-configmap-test
-  namespace: edge-system
-  labels:
-    app: redis-ha
-    heritage: "Helm"
-    release: "edge"
-    chart: redis-ha-4.4.6
-  annotations:
-    "helm.sh/hook": test-success
-spec:
-  containers:
-  - name: check-init
-    image: koalaman/shellcheck:v0.8.0
-    args:
-    - --shell=sh
-    - /readonly-config/init.sh
-    volumeMounts:
-    - name: config
-      mountPath: /readonly-config
-      readOnly: true
-  restartPolicy: Never
-  volumes:
-  - name: config
-    configMap:
-      name: edge-redis-ha-configmap
----
-apiVersion: v1
-kind: Pod
-metadata:
   name: edge-redis-ha-service-test
   namespace: edge-system
   labels:
@@ -1403,7 +1376,7 @@ metadata:
 spec:
   containers:
   - name: "edge-service-test"
-    image: redis:6.2.13-alpine
+    image: edgego/redis:6.2.13
     command:
       - sh
       - -c
@@ -1818,19 +1791,35 @@ data:
   edgex.yaml: |
     demo:
         messageType: event
-        port: 6379
+        port: 4222
         protocol: redis
-        server: edge-redis-ha-announce-0
+        server: edge-nats-server
         topic: demo-rules-event
-        type: redis
+        type: nats-jetstream
+    mod1:
+        messageType: request
+        optional:
+            AutoProvision: true
+            ClientId: rule-mod1
+            ConnectTimeout: 5
+            Deliver: new
+            Durable: ""
+            Format: nats
+            QueueGroup: ""
+            RetryOnFailedConnect: true
+        port: 4222
+        protocol: tcp
+        server: edge-nats-server
+        topic: edgex/events/device/Test-Device-Modbus-Profile/mod1/#
+        type: nats-jetstream
     share_conf:
-        connectionSelector: edgex.mqttMsgBus
+        connectionSelector: edgex.natsMsgBus
         messageType: event
-        port: 1883
+        port: 4222
         protocol: tcp
         server: 192.168.1.244
         topic: events
-        type: mqtt
+        type: nats-jetstream
 ---
 kind: ConfigMap
 apiVersion: v1
@@ -1983,7 +1972,7 @@ spec:
             claimName: edge-kuiper-claim
       containers:
         - name: edge-kuiper
-          image: lfedge/ekuiper:1.10.2-alpine
+          image: edgego/ekuiper:v1.11.0
           ports:
             - containerPort: 59720
               protocol: TCP
@@ -2207,10 +2196,11 @@ data:
           Host = "edge-nats-server"
           Port = 4222
           Protocol = "tcp"
-           PublishTopic="rules-events"
+          PublishTopic="app-rules-events"
         [Trigger.EdgexMessageBus.Optional]
           authmode = 'none'  # required for redis messagebus (secure or insecure).
           secretname = 'redisdb'
+          ClientId ="app-service-configurable"
           Format = "nats"
           RetryOnFailedConnect = "true"
           QueueGroup = ""
@@ -2484,7 +2474,7 @@ spec:
           fi
           cd "$work_dir"
           exec sh -ec "$0"
-        image: natsio/nats-box:0.13.5
+        image: edgego/nats-box:0.13.9
         name: nats-box
         volumeMounts:
         - mountPath: /etc/nats-contexts
@@ -2539,7 +2529,7 @@ spec:
               fieldPath: metadata.name
         - name: SERVER_NAME
           value: $(POD_NAME)
-        image: nats:2.9.20-alpine
+        image: edgego/nats-server:v2.9.21
         lifecycle:
           preStop:
             exec:
@@ -2595,7 +2585,7 @@ spec:
         - /var/run/nats/nats.pid
         - -config
         - /etc/nats-config/nats.conf
-        image: natsio/nats-server-config-reloader:0.11.0
+        image: edgego/nats-server-config-reloader:0.12.0
         name: reloader
         volumeMounts:
         - mountPath: /var/run/nats
