@@ -209,7 +209,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: kubernetes-dashboard
-          image: edgego/cloud-dashboard:v2.7.0
+          image: edgego/cloud-dashboard:v2.7.1
           ports:
             - containerPort: 9090
               protocol: TCP
