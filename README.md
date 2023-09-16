@@ -7,6 +7,7 @@
 - Cross platform, Edge Device Dashboard can run on amd64,arm64,arm and RISC-V 64 devices. 
 - Edge Device Dashboard  support english and simple chinese language, according to browswer's language setting.
 - Low cost,low carbon, small memory size(500Mi or above) and hard disk size.
+- Local storage to deduce network bottleneck
 - Simplify operations by UI dashboard.
 - Support prometheus,monitor device commands and autoevent's metrics .
 
