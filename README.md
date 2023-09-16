@@ -8,6 +8,7 @@
 - Edge Device Dashboard  support english and simple chinese language, according to browswer's language setting.
 - Low cost,low carbon, small memory size(500Mi or above) and hard disk size.
 - Simplify operations by UI dashboard.
+- Support prometheus,monitor device commands and autoevent's metrics .
 
 ## System module
   - device metadate, including: device profile,device service, devices
@@ -16,6 +17,7 @@
   - rule engine
   - app service
   - dashboard
+  - monitoring
 
 Install steps:
 
